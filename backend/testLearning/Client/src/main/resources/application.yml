@@ -1,0 +1,9 @@
+server:
+  port: 8082
+
+grpc:
+  client:
+    EmailService:
+      address: static://localhost:9090
+      enable-keep-alive: true
+      negotiationType: 'plaintext'

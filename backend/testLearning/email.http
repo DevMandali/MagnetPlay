@@ -1,0 +1,9 @@
+POST http://localhost:8082/email
+Content-Type: application/json
+
+{
+  "to": "bargepurnayaman087@gmail.com",
+  "subject": "Greeting!!",
+  "body": "This message is automated. Please DO NOT REPLY ON THIS.\nHi Purnay,\n how are you?",
+  "from": ""
+}

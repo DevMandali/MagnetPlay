@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package greeter;
+
+// Option for Java
+option java_multiple_files = true;
+option java_package = "org.devMandali.magnetPlay";
+option java_outer_classname = "GreeterProto";
+
+// Option for Go
+option go_package = "MagnetPlay/backend/proto";
+
+// The Greeter service definition
+service Greeter {
+  // Unary RPC: client sends one request, server sends one response
+  rpc SayHello (HelloRequest) returns (HelloResponse);
+}
+
+// Request message containing the user's name
+message HelloRequest {
+  string name = 1;  // Field number 1
+}
+
+// Response message containing the greeting
+message HelloResponse {
+  string message = 1;  // Field number 1
+}

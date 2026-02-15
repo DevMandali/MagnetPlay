@@ -1,12 +1,9 @@
-package org.devmandali.magnetPlay;
+package org.devMandali.magnetPlay;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import org.devMandali.magnetPlay.GreeterGrpc;
-import org.devMandali.magnetPlay.HelloRequest;
-import org.devMandali.magnetPlay.HelloResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.0.2</version>
+        <version>3.5.10</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>org.DevMandali</groupId>
@@ -31,7 +31,7 @@
         <spring.boot.version>3.5.10</spring.boot.version>
         <io.grpc>1.75.0</io.grpc>
         <grpc-client>2.15.0.RELEASE</grpc-client>
-
+        <protobuf.version>3.25.1</protobuf.version>
     </properties>
 
     <dependencyManagement>
@@ -75,15 +75,9 @@
             <artifactId>grpc-stub</artifactId>
         </dependency>
 
-        <!-- Required for Java 9+ -->
-        <dependency>
-            <groupId>javax.annotation</groupId>
-            <artifactId>javax.annotation-api</artifactId>
-            <version>1.3.2</version>
-        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-webmvc</artifactId>
+            <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
         <dependency>
@@ -121,7 +115,7 @@
                     </protocArtifact>
                     <pluginId>grpc-java</pluginId>
                     <pluginArtifact>
-                        io.grpc:protoc-gen-grpc-java:${grpc.version}:exe:${os.detected.classifier}
+                        io.grpc:protoc-gen-grpc-java:${io.grpc}:exe:${os.detected.classifier}
                     </pluginArtifact>
                     <protoSourceRoot>${project.basedir}/../proto</protoSourceRoot>
                 </configuration>

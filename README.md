@@ -217,6 +217,13 @@ git remote add upstream https://github.com/your-org/streaming-system.git
 pre-commit install
 ```
 
+### Build Go Proto Code
+```bash
+protoc --go_out=go-server --go_opt=paths=source_relative \
+       --go-grpc_out=go-server --go-grpc_opt=paths=source_relative \
+       proto/greeter.proto
+```
+
 ### Running Individual Components
 
 **Backend (Spring Boot):**

@@ -1,0 +1,9 @@
+server:
+  port: 8080
+
+grpc:
+  client:
+    Greeter:
+      address: static://localhost:50051
+      enable-keep-alive: true
+      negotiationType: 'plaintext'

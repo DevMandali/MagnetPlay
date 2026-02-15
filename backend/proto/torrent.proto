@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package torrent;
+
+// Option for Java
+option java_multiple_files = true;
+option java_package = "org.devMandali.magnetPlay";
+option java_outer_classname = "TorrentProto";
+
+// Option for Go
+option go_package = "MagnetPlay/backend/proto;torrent";
+
+service TorrentService {
+  rpc AddTorrent(TorrentRequest) returns (SessionInfo);
+}
+
+message TorrentRequest {
+  string magnetURL = 1;
+}
+
+enum Status {
+    STATUS_UNKNOWN = 0; 
+    STATUS_PENDING = 1;
+    STATUS_RUNNING = 2;
+    STATUS_COMPLETED = 3;
+    STATUS_FAILED = 4;
+}
+
+message SessionInfo {
+  string message = 1;
+  Status status = 2;
+}
+

@@ -40,12 +40,15 @@ func NewTorrentService(client *lt.Client) *TorrentService {
 func (s *TorrentService) AddTorrent(ctx context.Context, request *pb.TorrentRequest) (*pb.TorrentResponse, error) {
 	magnetURL := request.GetMagnetURL()
 
-	torrent, ok := s.GetTorrent(magnetURL)
+	torrent, ok := s.GetTorrent(magnetURL, "")
 	if ok != nil {
 		return &pb.TorrentResponse{
 			Status: pb.TorrentStatus_NOT_FOUND,
 		}, nil
 	}
+	// Get info hash to use as torrent ID
+	infoHash := torrent.InfoHash().String()
+
 	// Torrent is now added and metadata is available, we can extract the information we need to return to the client
 	info := torrent.Info()
 
@@ -75,21 +78,24 @@ func (s *TorrentService) AddTorrent(ctx context.Context, request *pb.TorrentRequ
 	}
 
 	return &pb.TorrentResponse{
-		Name:   name,
-		Files:  fileInfoList,
-		Status: pb.TorrentStatus_MULTI_FILE,
+		TorrentId: infoHash,
+		Name:      name,
+		Files:     fileInfoList,
+		Status:    pb.TorrentStatus_MULTI_FILE,
 	}, nil
 }
 
 // GetTorrent checks if the torrent already exists in the map, if not it adds it and waits for metadata to be available
-func (s *TorrentService) GetTorrent(magnetURL string) (*lt.Torrent, error) {
+func (s *TorrentService) GetTorrent(magnetURL string, infoHash string) (*lt.Torrent, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	// Check if torrent already exists
-	torrent, exists := s.torrents[magnetURL]
-	if exists {
-		return torrent, nil
+	if infoHash != "" {
+		torrent, exists := s.torrents[infoHash]
+		if exists {
+			return torrent, nil
+		}
 	}
 
 	// If not, add it
@@ -107,6 +113,6 @@ func (s *TorrentService) GetTorrent(magnetURL string) (*lt.Torrent, error) {
 	}
 
 	// Cache it in the map
-	s.torrents[magnetURL] = torrent
+	s.torrents[torrent.InfoHash().String()] = torrent
 	return torrent, nil
 }

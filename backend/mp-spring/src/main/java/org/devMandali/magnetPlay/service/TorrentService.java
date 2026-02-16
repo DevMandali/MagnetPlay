@@ -1,8 +1,8 @@
 package org.devMandali.magnetPlay.service;
 
 import net.devh.boot.grpc.client.inject.GrpcClient;
-import org.devMandali.magnetPlay.SessionInfo;
 import org.devMandali.magnetPlay.TorrentRequest;
+import org.devMandali.magnetPlay.TorrentResponse;
 import org.devMandali.magnetPlay.TorrentServiceGrpc;
 import org.devMandali.magnetPlay.model.TorrentAddRequest;
 import org.slf4j.Logger;
@@ -19,13 +19,14 @@ public class TorrentService {
 
     private final Logger logger = LoggerFactory.getLogger(TorrentService.class);
 
-    public Map<String, String> addTorrentToSession(TorrentAddRequest request) {
+    public Map<String, Object> addTorrentToSession(TorrentAddRequest request) {
         TorrentRequest grpcRequest = TorrentRequest.newBuilder().setMagnetURL(request.magnet()).build();
-        SessionInfo response = torrentServiceBlockingStub.addTorrent(grpcRequest);
-        logger.info(response.getMessage());
+        TorrentResponse response = torrentServiceBlockingStub.addTorrent(grpcRequest);
+        logger.info(response.getName());
         return Map.of(
-                "name", response.getMessage(),
-                "status", response.getStatus().name()
+                "name", response.getName(),
+                "status", response.getStatus().name(),
+                "files", response.getFilesList().stream().toString()
         );
     }
 }

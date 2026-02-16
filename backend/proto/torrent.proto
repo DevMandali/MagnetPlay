@@ -11,23 +11,28 @@ option java_outer_classname = "TorrentProto";
 option go_package = "MagnetPlay/backend/proto;torrent";
 
 service TorrentService {
-  rpc AddTorrent(TorrentRequest) returns (SessionInfo);
+  rpc AddTorrent(TorrentRequest) returns (TorrentResponse);
 }
 
 message TorrentRequest {
   string magnetURL = 1;
 }
 
-enum Status {
-    STATUS_UNKNOWN = 0; 
-    STATUS_PENDING = 1;
-    STATUS_RUNNING = 2;
-    STATUS_COMPLETED = 3;
-    STATUS_FAILED = 4;
+enum TorrentStatus {
+  NOT_FOUND = 0;
+  SINGLE_FILE = 1;
+  MULTI_FILE = 2;
+  NON_VIDEO_FILE = 3;
 }
 
-message SessionInfo {
-  string message = 1;
-  Status status = 2;
+message FileInfo {
+  string name = 2;
+  int64 size = 3;
 }
 
+message TorrentResponse {
+  string torrentId = 1;
+  string name = 2;
+  TorrentStatus status = 3;
+  repeated FileInfo files = 4;
+}

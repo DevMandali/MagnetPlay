@@ -1,3 +1,4 @@
 /.idea/
 backend/go-server/proto/*
 backend/.idea/*
+backend/mp-spring/target/*

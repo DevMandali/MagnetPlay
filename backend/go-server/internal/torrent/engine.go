@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	pb "server/proto"
@@ -24,28 +25,28 @@ func InitializeTorrentClient() (*lt.Client, error) {
 type TorrentService struct {
 	client *lt.Client
 	pb.UnimplementedTorrentServiceServer
+
+	torrents map[string]*lt.Torrent
+	mu       sync.Mutex
 }
 
 func NewTorrentService(client *lt.Client) *TorrentService {
 	return &TorrentService{
-		client: client,
+		client:   client,
+		torrents: make(map[string]*lt.Torrent),
 	}
 }
 
 func (s *TorrentService) AddTorrent(ctx context.Context, request *pb.TorrentRequest) (*pb.TorrentResponse, error) {
 	magnetURL := request.GetMagnetURL()
 
-	torrent, addMagnetError := s.client.AddMagnet(magnetURL)
-	if addMagnetError != nil {
-		return nil, fmt.Errorf("Failed to download Torrent: %v", addMagnetError)
+	torrent, ok := s.GetTorrent(magnetURL)
+	if ok != nil {
+		return &pb.TorrentResponse{
+			Status: pb.TorrentStatus_NOT_FOUND,
+		}, nil
 	}
-	select {
-	case <-torrent.GotInfo():
-		// Metadata received
-	case <-time.After(60 * time.Second):
-		return nil, fmt.Errorf("timeout waiting for torrent metadata")
-	}
-
+	// Torrent is now added and metadata is available, we can extract the information we need to return to the client
 	info := torrent.Info()
 
 	// Get torrent name
@@ -78,4 +79,34 @@ func (s *TorrentService) AddTorrent(ctx context.Context, request *pb.TorrentRequ
 		Files:  fileInfoList,
 		Status: pb.TorrentStatus_MULTI_FILE,
 	}, nil
+}
+
+// GetTorrent checks if the torrent already exists in the map, if not it adds it and waits for metadata to be available
+func (s *TorrentService) GetTorrent(magnetURL string) (*lt.Torrent, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Check if torrent already exists
+	torrent, exists := s.torrents[magnetURL]
+	if exists {
+		return torrent, nil
+	}
+
+	// If not, add it
+	torrent, err := s.client.AddMagnet(magnetURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add torrent: %v", err)
+	}
+
+	// Wait for metadata
+	select {
+	case <-torrent.GotInfo():
+		// metadata received
+	case <-time.After(60 * time.Second):
+		return nil, fmt.Errorf("timeout waiting for torrent metadata")
+	}
+
+	// Cache it in the map
+	s.torrents[magnetURL] = torrent
+	return torrent, nil
 }

@@ -26,6 +26,7 @@ enum TorrentStatus {
 }
 
 message FileInfo {
+  string id = 1;
   string name = 2;
   int64 size = 3;
 }
@@ -35,4 +36,9 @@ message TorrentResponse {
   string name = 2;
   TorrentStatus status = 3;
   repeated FileInfo files = 4;
+}
+
+message StreamRequest{
+  string torrentId = 1; // InfoHash
+  string fileId = 2;
 }

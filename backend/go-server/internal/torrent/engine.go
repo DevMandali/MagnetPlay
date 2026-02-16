@@ -62,8 +62,9 @@ func (s *TorrentService) AddTorrent(ctx context.Context, request *pb.TorrentRequ
 	// If fiels are empty, it might be a single-file torrent
 	if len(torrentFiles) == 0 {
 		return &pb.TorrentResponse{
-			Name:   name,
-			Status: pb.TorrentStatus_SINGLE_FILE,
+			TorrentId: infoHash,
+			Name:      name,
+			Status:    pb.TorrentStatus_SINGLE_FILE,
 		}, nil
 	}
 
@@ -71,6 +72,7 @@ func (s *TorrentService) AddTorrent(ctx context.Context, request *pb.TorrentRequ
 	fileInfoList := []*pb.FileInfo{}
 	for _, file := range torrentFiles {
 		fileInfoList = append(fileInfoList, &pb.FileInfo{
+			Id:   file.Sha1,
 			Name: file.DisplayPath(info),
 			Size: file.Length,
 		})

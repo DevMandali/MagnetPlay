@@ -4,7 +4,7 @@ server:
 grpc:
   client:
     TorrentService:
-      address: static://localhost:50051
+      address: ${GRPC_TORRENT_SERVICE_ADDRESS:static://localhost:50051}
       enable-keep-alive: true
-      negotiationType: 'plaintext'
+      negotiationType: ${GRPC_NEGOTIATION_TYPE:plaintext}
 

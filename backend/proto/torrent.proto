@@ -15,7 +15,7 @@ service TorrentService {
 }
 
 message TorrentRequest {
-  string magnetURL = 1;
+  string magnet_url  = 1;
 }
 
 enum TorrentStatus {
@@ -32,13 +32,13 @@ message FileInfo {
 }
 
 message TorrentResponse {
-  string torrentId = 1;
+  string torrent_id  = 1;
   string name = 2;
   TorrentStatus status = 3;
   repeated FileInfo files = 4;
 }
 
 message StreamRequest{
-  string torrentId = 1; // InfoHash
-  string fileId = 2;
+  string torrent_id  = 1; // InfoHash
+  string file_id  = 2;
 }

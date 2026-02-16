@@ -30,7 +30,7 @@
         <java.version>17</java.version>
         <spring.boot.version>3.5.10</spring.boot.version>
         <io.grpc>1.75.0</io.grpc>
-        <grpc-client>2.15.0.RELEASE</grpc-client>
+        <grpc-client>3.1.0.RELEASE</grpc-client>
         <protobuf.version>3.25.1</protobuf.version>
     </properties>
 

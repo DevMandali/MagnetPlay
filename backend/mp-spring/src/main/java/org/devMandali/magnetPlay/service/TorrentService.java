@@ -1,17 +1,16 @@
 package org.devMandali.magnetPlay.service;
 
 import net.devh.boot.grpc.client.inject.GrpcClient;
-import org.devMandali.magnetPlay.FileInfo;
-import org.devMandali.magnetPlay.TorrentRequest;
-import org.devMandali.magnetPlay.TorrentResponse;
-import org.devMandali.magnetPlay.TorrentServiceGrpc;
+import org.devMandali.magnetPlay.*;
 import org.devMandali.magnetPlay.model.TorrentAddRequest;
+import org.devMandali.magnetPlay.model.TorrentAddResponse;
 import org.devMandali.magnetPlay.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.Map;
+import java.util.LinkedHashMap;
+
 import java.util.stream.Collectors;
 
 @Service
@@ -22,15 +21,21 @@ public class TorrentService {
 
     private final Logger logger = LoggerFactory.getLogger(TorrentService.class);
 
-    public Map<String, Object> addTorrentToSession(TorrentAddRequest request) {
+    public TorrentAddResponse addTorrentToSession(TorrentAddRequest request) {
         TorrentRequest grpcRequest = TorrentRequest.newBuilder().setMagnetUrl(request.magnet()).build();
         TorrentResponse response = torrentServiceBlockingStub.addTorrent(grpcRequest);
-        logger.info(String.valueOf(response));
-        return Map.of(
-                "torrentId", response.getTorrentId(),
-                "name", response.getName(),
-                "status", response.getStatus().name(),
-                "files", response.getFilesList().stream().collect(Collectors.toMap(FileInfo::getId, file -> String.format("%s => %s", file.getName(), ByteUtil.formatSize(file.getSize()))))
+        logger.debug("Torrent added: id={}, name={}", response.getTorrentId(), response.getName());
+
+        return new TorrentAddResponse(
+                response.getTorrentId(),
+                response.getName(),
+                response.getStatus().name(),
+                response.getFilesList().stream().collect(Collectors.toMap(
+                        FileInfo::getId,
+                        file -> String.format("%s => %s", file.getName(), ByteUtil.formatSize(file.getSize())),
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new
+                ))
         );
     }
 }

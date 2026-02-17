@@ -32,6 +32,7 @@
         <io.grpc>1.75.0</io.grpc>
         <grpc-client>3.1.0.RELEASE</grpc-client>
         <protobuf.version>3.25.1</protobuf.version>
+        <openapi.version>2.8.15</openapi.version>
     </properties>
 
     <dependencyManagement>
@@ -89,6 +90,26 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${openapi.version}</version>
+            <exclusions>
+                <exclusion>
+                    <!-- Excluded As commons-lang3:3.17.0 had some CVE & added 3.18.0 version separately-->
+                    <groupId>org.apache.commons</groupId>
+                    <artifactId>commons-lang3</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- Added As commons-lang3:3.17.0 had some CVE-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.18.0</version>
         </dependency>
     </dependencies>
 

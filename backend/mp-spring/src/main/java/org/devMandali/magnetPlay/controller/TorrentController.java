@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/v1/torrent")
@@ -36,9 +37,9 @@ public class TorrentController {
             @ApiResponse(responseCode = "400", description = "Invalid URL supplied",
                     content = @Content),
     })
-    @PostMapping(consumes = {"application/json"})
+    @PostMapping(value = "/add", consumes = {"application/json"})
     @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true)
-    public ResponseEntity<TorrentAddResponse> addTorrent(@Valid @RequestBody TorrentAddRequest request){
+    public Mono<ResponseEntity<TorrentAddResponse>> addTorrent(@Valid @RequestBody TorrentAddRequest request){
         logger.info("Got new torrent request");
 
         if(logger.isDebugEnabled())  {
@@ -47,6 +48,15 @@ public class TorrentController {
             String infoHash = TorrentUtil.extractInfoHash(request.magnet());
             logger.debug("Extracted infoHash: {}", infoHash);
         }
-        return ResponseEntity.status(HttpStatus.CREATED).body(service.addTorrentToSession(request));
+
+        return service.addTorrentToSession(request)
+                .map(resp -> ResponseEntity.status(HttpStatus.CREATED).body(resp))
+                .doOnError(e -> logger.error("Failed to add torrent: {}", e.getMessage(), e))
+                .onErrorResume(e -> {
+                    if (e instanceof IllegalArgumentException) {
+                        return Mono.just(ResponseEntity.badRequest().build());
+                    }
+                    return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+                });
     }
 }

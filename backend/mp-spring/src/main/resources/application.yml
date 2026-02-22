@@ -1,14 +1,31 @@
 server:
   port: 8080
+  # Netty codec settings — needed for large Range responses
+  netty:
+    max-initial-line-length: 65536
+    max-header-size: 65536
 
 springdoc:
   api-docs:
     path: /magnetplay-api-docs
 
+# ── Go sidecar gRPC connection ────────────────────────────────────────────────
 grpc:
   client:
     TorrentService:
       address: ${GRPC_TORRENT_SERVICE_ADDRESS:static://localhost:50051}
       enable-keep-alive: true
       negotiationType: ${GRPC_NEGOTIATION_TYPE:plaintext}
+
+# ── CORS ─────────────────────────────────────────────────────────────────────
+cors:
+  allowed-origins:
+    - http://localhost:3000    # React dev server
+
+# ── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level:
+    org.devMandali.magnetPlay: ${LOG_LEVEL:INFO}
+    io.grpc: WARN
+    reactor.netty: WARN
 

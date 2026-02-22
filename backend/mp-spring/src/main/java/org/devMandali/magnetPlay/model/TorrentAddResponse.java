@@ -22,4 +22,4 @@ public record TorrentAddResponse(
                 additionalPropertiesSchema = String.class
         )
         Map<String, String> files
-) implements Serializable {}
+) implements Serializable { }

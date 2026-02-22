@@ -33,6 +33,7 @@
         <grpc-client>3.1.0.RELEASE</grpc-client>
         <protobuf.version>3.25.1</protobuf.version>
         <openapi.version>2.8.15</openapi.version>
+        <javax.annotation.version>1.3.2</javax.annotation.version>
     </properties>
 
     <dependencyManagement>
@@ -62,6 +63,19 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- WebFlux — reactive, non-blocking HTTP on Netty -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
+        </dependency>
+
+<!--        &lt;!&ndash; Needed at compile time for @Generated annotation from protoc &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>javax.annotation</groupId>-->
+<!--            <artifactId>javax.annotation-api</artifactId>-->
+<!--            <version>${javax.annotation.version}</version>-->
+<!--        </dependency>-->
+
         <!-- gRPC Dependencies -->
         <dependency>
             <groupId>io.grpc</groupId>
@@ -76,10 +90,10 @@
             <artifactId>grpc-stub</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.boot</groupId>-->
+<!--            <artifactId>spring-boot-starter-web</artifactId>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>net.devh</groupId>
@@ -103,6 +117,13 @@
                     <artifactId>commons-lang3</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+
+        <!--  GSON for parsing JSON into map -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>2.13.2</version>
         </dependency>
 
         <!-- Added As commons-lang3:3.17.0 had some CVE-->

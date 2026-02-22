@@ -8,6 +8,8 @@ server:
 springdoc:
   api-docs:
     path: /magnetplay-api-docs
+  swagger-ui:
+    path: /swagger-ui.html
 
 # ── Go sidecar gRPC connection ────────────────────────────────────────────────
 grpc:

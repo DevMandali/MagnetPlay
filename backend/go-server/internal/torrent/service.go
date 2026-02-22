@@ -5,6 +5,9 @@ import (
 	"log"
 
 	pb "server/proto"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type TorrentService struct {
@@ -17,7 +20,11 @@ func NewTorrentService(repo *Repository) *TorrentService {
 }
 
 func (s *TorrentService) AddTorrent(ctx context.Context, req *pb.TorrentRequest) (*pb.TorrentResponse, error) {
-	t, err := s.repo.GetOrAdd(req.GetMagnetURL(), "")
+	magnetUrl := req.GetMagnetUrl()
+	if magnetUrl == "" {
+		return nil, status.Error(codes.InvalidArgument, "magnet URL is required")
+	}
+	t, err := s.repo.GetOrAdd(ctx, magnetUrl, "")
 	if err != nil {
 		log.Printf("Failed to get torrent: %v", err)
 		return &pb.TorrentResponse{Status: pb.TorrentStatus_NOT_FOUND}, nil

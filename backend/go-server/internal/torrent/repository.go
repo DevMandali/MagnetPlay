@@ -1,7 +1,9 @@
 package torrent
 
 import (
+	"context"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,11 +25,11 @@ func NewRepository(client *lt.Client, metadataTimeout time.Duration) *Repository
 	}
 }
 
-// GetOrAdd returns a cached torrent by infoHash, or adds it via magnet and waits for metadata.
-func (r *Repository) GetOrAdd(magnetURL string, infoHash string) (*lt.Torrent, error) {
+func (r *Repository) GetOrAdd(ctx context.Context, magnetURL string, infoHash string) (*lt.Torrent, error) {
+	normalizedHash := strings.ToLower(infoHash)
 	if infoHash != "" {
 		r.mu.RLock()
-		t, exists := r.torrents[infoHash]
+		t, exists := r.torrents[normalizedHash]
 		r.mu.RUnlock()
 		if exists {
 			return t, nil
@@ -42,11 +44,22 @@ func (r *Repository) GetOrAdd(magnetURL string, infoHash string) (*lt.Torrent, e
 	select {
 	case <-t.GotInfo():
 	case <-time.After(r.metadataTimeout):
+		t.Drop()
 		return nil, fmt.Errorf("timeout waiting for torrent metadata")
+	case <-ctx.Done():
+		t.Drop()
+		return nil, fmt.Errorf("context cancelled while waiting for torrent metadata: %w", ctx.Err())
 	}
 
+	key := t.InfoHash().HexString()
 	r.mu.Lock()
-	r.torrents[t.InfoHash().HexString()] = t
+	// Double-check in case another goroutine added it while we were fetching metadata
+	if existing, exists := r.torrents[key]; exists {
+		r.mu.Unlock()
+		t.Drop() // Drop duplicate
+		return existing, nil
+	}
+	r.torrents[key] = t
 	r.mu.Unlock()
 
 	return t, nil

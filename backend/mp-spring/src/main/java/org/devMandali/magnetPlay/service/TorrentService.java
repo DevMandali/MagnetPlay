@@ -1,6 +1,5 @@
 package org.devMandali.magnetPlay.service;
 
-import net.devh.boot.grpc.client.inject.GrpcClient;
 import org.devMandali.magnetPlay.*;
 import org.devMandali.magnetPlay.client.TorrentGrpcClient;
 import org.devMandali.magnetPlay.model.TorrentAddRequest;
@@ -8,7 +7,6 @@ import org.devMandali.magnetPlay.model.TorrentAddResponse;
 import org.devMandali.magnetPlay.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 

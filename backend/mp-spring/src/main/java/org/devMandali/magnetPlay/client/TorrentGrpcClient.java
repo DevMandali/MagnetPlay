@@ -7,7 +7,6 @@ import org.devMandali.magnetPlay.TorrentServiceGrpc;
 import org.devMandali.magnetPlay.model.TorrentAddResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -20,12 +19,16 @@ import java.util.function.Function;
 @Component
 public class TorrentGrpcClient {
 
-    @GrpcClient("TorrentService")
-    private TorrentServiceGrpc.TorrentServiceBlockingStub torrentServiceBlockingStub;
+    private final TorrentServiceGrpc.TorrentServiceBlockingStub torrentServiceBlockingStub;
+    private final Scheduler grpcScheduler;
 
-    @Autowired
-    @Qualifier("grpcScheduler")
-    private Scheduler grpcScheduler;
+    public TorrentGrpcClient(
+            @GrpcClient("TorrentService") TorrentServiceGrpc.TorrentServiceBlockingStub torrentServiceBlockingStub,
+            @Qualifier("grpcScheduler") Scheduler grpcScheduler
+    ) {
+        this.torrentServiceBlockingStub = torrentServiceBlockingStub;
+        this.grpcScheduler = grpcScheduler;
+    }
 
     @Value("${grpc.client.torrent.deadline-seconds:90}")
     private long deadlineSeconds;

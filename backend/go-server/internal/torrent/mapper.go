@@ -20,14 +20,6 @@ func toResponse(t *lt.Torrent) *pb.TorrentResponse {
 	}
 	infoHash := t.InfoHash().String()
 
-	if len(t.Files()) == 0 {
-		return &pb.TorrentResponse{
-			TorrentId: infoHash,
-			Name:      info.Name,
-			Status:    pb.TorrentStatus_SINGLE_FILE,
-		}
-	}
-
 	return &pb.TorrentResponse{
 		TorrentId: infoHash,
 		Name:      info.Name,

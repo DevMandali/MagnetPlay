@@ -1,0 +1,56 @@
+.PHONY: proto build run clean tidy all
+
+PROTO_DIR := proto
+GO_SERVER_DIR := go-server
+
+# --- OS Detection Logic ---
+ifeq ($(OS),Windows_NT)
+    # Windows Settings
+    RM = rmdir /s /q
+    RM_FILE = del /f /q
+    MKDIR = if not exist
+    # Fix paths for Windows (replaces forward slash with backslash for commands)
+    BIN_PATH = bin\server.exe
+else
+    # Linux/macOS Settings
+    RM = rm -rf
+    RM_FILE = rm -f
+    MKDIR = mkdir -p
+    BIN_PATH = bin/server
+endif
+
+# --- Targets ---
+
+# Generate protobuf files
+proto:
+	protoc \
+		--go_out=$(GO_SERVER_DIR) \
+		--go_opt=paths=source_relative \
+		--go-grpc_out=$(GO_SERVER_DIR) \
+		--go-grpc_opt=paths=source_relative \
+		$(PROTO_DIR)/torrent.proto
+
+# Build the Go server
+# Note: Use -C for change directory if using GNU Make, or just cd
+build:
+	cd $(GO_SERVER_DIR) && go build -o bin/server.exe main.go
+
+# Run the Go server
+run:
+	cd $(GO_SERVER_DIR) && go run main.go
+
+# Tidy Go modules
+tidy:
+	cd $(GO_SERVER_DIR) && go mod tidy
+
+all: proto build
+
+# Clean build artifacts (Uses the OS-specific variables)
+clean:
+ifeq ($(OS),Windows_NT)
+	@if exist $(GO_SERVER_DIR)\bin $(RM) $(GO_SERVER_DIR)\bin
+	@if exist $(GO_SERVER_DIR)\$(PROTO_DIR)\*.pb.go $(RM_FILE) $(GO_SERVER_DIR)\$(PROTO_DIR)\*.pb.go
+else
+	$(RM) $(GO_SERVER_DIR)/bin
+	$(RM_FILE) $(GO_SERVER_DIR)/$(PROTO_DIR)/*.pb.go
+endif

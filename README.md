@@ -218,10 +218,18 @@ pre-commit install
 ```
 
 ### Build Go Proto Code
+#### Prerequisite for Windows 
+  - Install protoc `winget install Google.Protobuf`
+  - Install Make.exe  `winget install ezwinports.make`
+
+#### Build Project or go-proto files
+- Run below command from MagnetPlay/backend
+  - To generate go-proto file only `make -f MakeFile proto`.
+  - To build go project `make -f MakeFile all` (proto + build target)
+  
+#### Manual apporach to run (preferred for debugging)
 ```bash
-protoc --go_out=go-server --go_opt=paths=source_relative \
-       --go-grpc_out=go-server --go-grpc_opt=paths=source_relative \
-       proto/greeter.proto
+protoc --go_out=go-server --go_opt=paths=source_relative --go-grpc_out=go-server --go-grpc_opt=paths=source_relative proto/torrent.proto
 ```
 
 ### Running Individual Components

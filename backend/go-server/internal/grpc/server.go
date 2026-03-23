@@ -55,6 +55,9 @@ func StartServer(cfg config.Config) {
 	<-stop
 	log.Println("Shutting down server...")
 
+	// Perform any necessary cleanup here (e.g., close database connections, stop background tasks)
+	repo.Clearup()
+
 	// Gracefully stop the gRPC server
 	grpcServer.GracefulStop()
 }

@@ -1,6 +1,13 @@
 package org.devMandali.magnetPlay.client;
 
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import net.devh.boot.grpc.client.inject.GrpcClient;
+import org.devMandali.magnetPlay.*;
+import org.devMandali.magnetPlay.FileChunk;
+import org.devMandali.magnetPlay.FileInfoRequest;
+import org.devMandali.magnetPlay.FileInfoResponse;
+import org.devMandali.magnetPlay.StreamRequest;
 import org.devMandali.magnetPlay.TorrentRequest;
 import org.devMandali.magnetPlay.TorrentResponse;
 import org.devMandali.magnetPlay.TorrentServiceGrpc;
@@ -10,9 +17,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
+import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -30,8 +40,11 @@ public class TorrentGrpcClient {
         this.grpcScheduler = grpcScheduler;
     }
 
-    @Value("${grpc.client.torrent.deadline-seconds:90}")
-    private long deadlineSeconds;
+    @Value("${grpc.client.torrent.add.deadline-seconds:90}")
+    private long addDeadlineSeconds;
+
+    @Value("${grpc.client.torrent.stream.deadline-hours:12}")
+    private long streamDeadlineHours;
 
     private static final Logger logger = LoggerFactory.getLogger(TorrentGrpcClient.class);
 
@@ -39,10 +52,54 @@ public class TorrentGrpcClient {
 
     public Mono<TorrentAddResponse> addTorrent(TorrentRequest request, Function<TorrentResponse, TorrentAddResponse> prepResponseFn) {
         return Mono.fromCallable(() -> torrentServiceBlockingStub
-                .withDeadlineAfter(deadlineSeconds, TimeUnit.SECONDS)
+                .withDeadlineAfter(addDeadlineSeconds, TimeUnit.SECONDS)
                 .addTorrent(request))
                 .map(prepResponseFn)
                 .subscribeOn(grpcScheduler)
                 .doOnError(e -> logger.error("addTorrent gRPC error", e));
+    }
+
+    // ─── GetFileInfo ─────────────────────────────────────────────────────────
+
+    public Mono<FileInfoResponse> getFileInfoResponse(FileInfoRequest request) {
+        return Mono.fromCallable(() -> torrentServiceBlockingStub
+                .withDeadlineAfter(10, TimeUnit.SECONDS)
+                .getFileInfo(request))
+                .subscribeOn(grpcScheduler)
+                .doOnError(e -> logger.error("getFileInfo gRPC error for {}/{}", request.getInfoHash(), request.getFileId(), e));
+    }
+
+    // ─── StreamFile ──────────────────────────────────────────────────────────
+    public Flux<FileChunk> streamFile(StreamRequest request) {
+        return Flux.<FileChunk>create(sink -> {
+            try {
+                // Long deadline - a full movie stream can take hours
+                Iterator<FileChunk> iter = torrentServiceBlockingStub
+                        .withDeadlineAfter(streamDeadlineHours, TimeUnit.HOURS)
+                        .streamFile(request);
+
+                while(iter.hasNext()) {
+                    // Check if downstream (HTTP Client) cancelled
+                    if(sink.isCancelled()) {
+                        logger.debug("downstream cancelled stream for {}/{} at byte {}", request.getTorrentId(), request.getFileId(), request.getStartByte());
+                        break;
+                    }
+                    sink.next(iter.next());
+                }
+                sink.complete();
+            } catch (StatusRuntimeException e) {
+                if(e.getStatus().getCode() == Status.Code.CANCELLED) {
+                    // Normal - client seeked away or closed the player
+                    logger.debug("gRPC stream cancelled for {}/{}", request.getTorrentId(), request.getFileId());
+                    sink.complete();
+                } else {
+                    logger.error("gRPC stream error for {}/{}", request.getTorrentId(), request.getFileId());
+                    sink.error(e);
+                }
+            } catch (Exception e) {
+                sink.error(e);
+            }
+        }, FluxSink.OverflowStrategy.BUFFER)
+                .subscribeOn(grpcScheduler);
     }
 }

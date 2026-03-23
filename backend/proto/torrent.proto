@@ -11,8 +11,32 @@ option java_outer_classname = "TorrentProto";
 option go_package = "MagnetPlay/backend/proto;torrent";
 
 service TorrentService {
+  // Unary: resolve torrent info — call this before streaming
+  rpc GetFileInfo(FileInfoRequest) returns (FileInfoResponse);
+
+  // Unary: add a torrent magnet/file to the client
   rpc AddTorrent(TorrentRequest) returns (TorrentResponse);
+
+  // Server-side streaming: stream file content chunk by chunk
+  rpc StreamFile(StreamRequest) returns (stream FileChunk);
 }
+
+// ─── FileInfo ──────────────────────────────────────────────────────────────
+
+message FileInfoRequest {
+  string info_hash = 1;
+  string file_id = 2;
+}
+
+message FileInfoResponse {
+  string file_name  = 1;
+  string file_path  = 2;
+  int64  total_size = 3;  // bytes
+  string mime_type  = 4;
+  bool   is_ready   = 5;  // true = torrent info resolved, safe to stream
+}
+
+// ─── AddTorrent ────────────────────────────────────────────────────────────
 
 message TorrentRequest {
   string magnet_url  = 1;
@@ -38,7 +62,16 @@ message TorrentResponse {
   repeated FileInfo files = 4;
 }
 
+// ─── StreamFile ───────────────────────────────────────────────────────────
 message StreamRequest{
-  string torrent_id  = 1; // InfoHash
+  string torrent_id  = 1;
   string file_id  = 2;
+  int64  start_byte = 3;  // inclusive
+  int64  end_byte   = 4;  // exclusive; -1 = stream to EOF
+}
+
+message FileChunk {
+  bytes data     = 1;
+  int64 offset   = 2;  // byte offset of this chunk within the file
+  bool  is_last  = 3;
 }

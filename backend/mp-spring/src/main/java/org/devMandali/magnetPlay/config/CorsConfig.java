@@ -33,6 +33,7 @@ public class CorsConfig {
         config.setAllowedOrigins(allowedOrigins);
         config.setAllowedMethods(List.of(
                 HttpMethod.GET.name(),
+                HttpMethod.POST.name(),
                 HttpMethod.OPTIONS.name(),
                 HttpMethod.HEAD.name()
         ));
@@ -47,6 +48,10 @@ public class CorsConfig {
                 HttpHeaders.CONTENT_LENGTH,
                 HttpHeaders.CONTENT_RANGE
         ));
+        // TODO Remove once frontend server is configured
+        // This allows the browser's "null" origin (local file://)
+        config.addAllowedOrigin("null");
+
         config.setAllowCredentials(false);
         config.setMaxAge(3600L);
 

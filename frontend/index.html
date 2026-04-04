@@ -569,6 +569,135 @@
       .subtitle-upload-row { flex-wrap: wrap; }
       .subtitle-formats { display: none; }
     }
+
+    /* ══════════════════════════════════════════════
+       WIZARD — 2-STEP FLOW
+    ══════════════════════════════════════════════ */
+
+    /* Clip container so sliding panels don't overflow */
+    .wizard-viewport {
+      width: 100%; max-width: 860px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Both steps live side by side in a flex row */
+    .wizard-track {
+      display: flex;
+      width: 200%;
+      transition: transform 0.42s cubic-bezier(.65,.05,.34,.99);
+      will-change: transform;
+    }
+    .wizard-track.step-1 { transform: translateX(0); }
+    .wizard-track.step-2 { transform: translateX(-50%); }
+
+    /* Each step panel occupies exactly half the track (= 100% of viewport) */
+    .wizard-panel {
+      width: 50%;
+      flex-shrink: 0;
+    }
+
+    /* Fade-in when a panel slides into view */
+    @keyframes wizardFadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    /* Step indicator strip */
+    .wizard-steps {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .wizard-step-pill {
+      display: flex; align-items: center; gap: 6px;
+      font-family: var(--mono); font-size: 9px; letter-spacing: 2px;
+      text-transform: uppercase; color: var(--muted);
+      transition: color 0.3s;
+    }
+    .wizard-step-pill.active { color: var(--text); }
+    .wizard-step-num {
+      width: 18px; height: 18px; border-radius: 50%;
+      border: 1.5px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; flex-shrink: 0;
+      transition: background 0.3s, border-color 0.3s, color 0.3s;
+    }
+    .wizard-step-pill.active   .wizard-step-num { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .wizard-step-pill.done     .wizard-step-num { border-color: var(--ok); background: var(--ok); color: #fff; }
+    .wizard-step-pill.done                      { color: var(--ok); }
+    .wizard-sep {
+      flex: 1; height: 1px; background: var(--border);
+      max-width: 60px;
+      transition: background 0.3s;
+    }
+    .wizard-sep.done { background: var(--ok); }
+
+    /* ── Loading overlay (between steps) ─────────── */
+    .fetch-overlay {
+      position: absolute; inset: 0;
+      background: var(--surface);
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 18px;
+      z-index: 10;
+      border-radius: var(--radius);
+      animation: wizardFadeIn 0.2s ease both;
+    }
+    .fetch-spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      animation: spin 0.8s linear infinite;
+    }
+    .fetch-label {
+      font-family: var(--mono); font-size: 10px;
+      letter-spacing: 2.5px; text-transform: uppercase;
+      color: var(--muted);
+    }
+    .fetch-magnet-preview {
+      font-family: var(--mono); font-size: 9px;
+      color: var(--muted); opacity: 0.6;
+      max-width: 340px; text-align: center;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ── File select dropdown  ────────────────────── */
+    .file-select {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 10px 14px; color: var(--text);
+      font-family: var(--mono); font-size: 11px; outline: none;
+      transition: border-color 0.2s; cursor: pointer;
+      appearance: none; -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a5a72' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+    }
+    .file-select:focus { border-color: var(--accent); }
+    .file-select option { background: #12121a; }
+
+    /* file count badge next to the label */
+    .file-count-badge {
+      display: inline-flex; align-items: center;
+      margin-left: 8px;
+      font-family: var(--mono); font-size: 8px; letter-spacing: 1px;
+      padding: 1px 6px; border-radius: 3px;
+      border: 1px solid var(--ok); color: var(--ok);
+    }
+
+    /* Back link */
+    .btn-back {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 10px 18px; border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent; color: var(--muted);
+      font-family: var(--mono); font-size: 11px; letter-spacing: 1.5px;
+      text-transform: uppercase; cursor: pointer; transition: all 0.15s;
+    }
+    .btn-back:hover { border-color: var(--muted); color: var(--text); }
   </style>
 </head>
 <body>
@@ -1166,6 +1295,15 @@ function readFileAsText(file) {
      App
   ══════════════════════════════════════════════════════ */
   function App() {
+    /* ── Wizard state ─────────────────────────────── */
+    const [step,        setStep]        = useState(1);           // 1 | 2
+    const [magnetLink,  setMagnetLink]  = useState('');
+    const [fetchState,  setFetchState]  = useState('idle');      // 'idle' | 'loading' | 'error'
+    const [fetchError,  setFetchError]  = useState(null);
+    const [torrentFiles, setTorrentFiles] = useState([]);        // [{ id, name, size? }]
+    const [infoHash,    setInfoHash]    = useState('');
+
+    /* ── Step-2 / player state ────────────────────── */
     const [draft,      setDraft]      = useState({ infoHash: '', fileId: '', mimeType: 'video/mp4' });
     const [active,     setActive]     = useState(null);
     const [error,      setError]      = useState(null);
@@ -1253,12 +1391,65 @@ function readFileAsText(file) {
     const handleReset = () => {
       setActive(null); setError(null); setMoovStatus('idle');
       setShowSubPanel(false);
-      /* Revoke all blob URLs */
       Object.values(blobUrls.current).forEach(u => URL.revokeObjectURL(u));
       blobUrls.current = {};
       setSubtitleTracks([]);
     };
 
+    /* ── Full wizard reset (back to step 1) ─────── */
+    const handleFullReset = () => {
+      handleReset();
+      setStep(1);
+      setMagnetLink('');
+      setFetchState('idle');
+      setFetchError(null);
+      setTorrentFiles([]);
+      setInfoHash('');
+      setDraft({ infoHash: '', fileId: '', mimeType: 'video/mp4' });
+    };
+
+    /* ── Step 1 → fetch torrent file list ─────────── */
+    const handleFetchFiles = async () => {
+      const mag = magnetLink.trim();
+      if (!mag) return;
+      setFetchState('loading');
+      setFetchError(null);
+      try {
+        const res = await fetch(
+          `${BASE_URL}/v1/torrent/add`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ magnet: mag }),
+            signal: AbortSignal.timeout(40000),
+          }
+        );
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+        const data = await res.json();
+        /* Shape: { torrentId, name, status, files: { [fileId]: "filename => size" } } */
+        const hash     = data.torrentId || '';
+        const rawFiles = data.files && typeof data.files === 'object' ? data.files : {};
+        const files    = Object.entries(rawFiles).map(([id, label]) => {
+          const [namePart, sizePart] = label.split(' => ');
+          return { id, name: namePart.trim(), sizeLabel: (sizePart || '').trim() };
+        });
+        if (!files.length) throw new Error('No files found in torrent');
+        setInfoHash(hash);
+        setTorrentFiles(files);
+        /* Pre-select first video file if possible */
+        const firstVideo = files.find(f =>
+          /\.(mp4|mkv|avi|mov|webm|ts|m4v|flv)$/i.test(f.name)
+        ) || files[0];
+        setDraft(d => ({ ...d, infoHash: hash, fileId: firstVideo.id }));
+        setStep(2);
+        setFetchState('idle');
+      } catch (err) {
+        setFetchState('error');
+        setFetchError(err.message || 'Failed to fetch torrent info');
+      }
+    };
+
+    /* ── Step-2 handlers ──────────────────────────── */
     const handleChange = (field) => (e) => setDraft(d => ({ ...d, [field]: e.target.value }));
     const handlePlay   = () => {
       if (!draft.infoHash.trim() || !draft.fileId.trim()) return;
@@ -1294,7 +1485,21 @@ function readFileAsText(file) {
           <span className="header-title">Torrent Video Player</span>
         </header>
 
-        <div className="card">
+        {/* ══════════════════════════
+            WIZARD CARD (steps 1 & 2)
+        ══════════════════════════ */}
+        <div className="wizard-viewport card" style={{ position: 'relative' }}>
+
+          {/* Loading overlay — shown while fetching file list */}
+          {fetchState === 'loading' && (
+            <div className="fetch-overlay">
+              <div className="fetch-spinner" />
+              <span className="fetch-label">Fetching torrent info…</span>
+              <span className="fetch-magnet-preview">{magnetLink}</span>
+            </div>
+          )}
+
+          {/* Card header with step indicators */}
           <div className="card-header">
             <span className="dot dot-red"   />
             <span className="dot dot-amber" />
@@ -1302,41 +1507,112 @@ function readFileAsText(file) {
             <span className="card-label">Stream Config</span>
           </div>
 
-          <div className="form-grid">
-            <div className="form-group full">
-              <label htmlFor="infoHash">Info Hash</label>
-              <input id="infoHash" type="text"
-                placeholder="e.g. a1b2c3d4e5f6a1b2c3d4e5f6..."
-                value={draft.infoHash} onChange={handleChange('infoHash')} />
+          {/* Step pills */}
+          <div className="wizard-steps">
+            <div className={`wizard-step-pill ${step === 1 ? 'active' : 'done'}`}>
+              <div className="wizard-step-num">{step > 1 ? '✓' : '1'}</div>
+              Magnet Link
             </div>
-            <div className="form-group full">
-              <label htmlFor="fileId">File Id</label>
-              <input id="fileId" type="text"
-                placeholder="e.g. a1b2c3d4e5f6a1b2c3d4e5f6....:0"
-                value={draft.fileId} onChange={handleChange('fileId')} />
+            <div className={`wizard-sep ${step > 1 ? 'done' : ''}`} />
+            <div className={`wizard-step-pill ${step === 2 ? 'active' : ''}`}>
+              <div className="wizard-step-num">2</div>
+              Select File
             </div>
-            <div className="form-group">
-              <label htmlFor="mimeType">MIME Type</label>
-              <select id="mimeType" value={draft.mimeType} onChange={handleChange('mimeType')}>
-                <option value="video/mp4">video/mp4 — MP4</option>
-                <option value="video/webm">video/webm — WebM</option>
-                <option value="application/x-mpegURL">application/x-mpegURL — HLS</option>
-              </select>
-            </div>
-            <div className="form-group" style={{ justifyContent: 'flex-end', paddingTop: 22 }}>
-              <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
-                Base URL <span style={{ color: 'var(--text)' }}>{BASE_URL}</span>
+          </div>
+
+          {/* Sliding track */}
+          <div className={`wizard-track step-${step}`}>
+
+            {/* ── STEP 1 ── Magnet Link ── */}
+            <div className="wizard-panel">
+              <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="form-group full">
+                  <label htmlFor="magnetLink">Magnet Link</label>
+                  <input
+                    id="magnetLink"
+                    type="text"
+                    placeholder="magnet:?xt=urn:btih:…"
+                    value={magnetLink}
+                    onChange={e => { setMagnetLink(e.target.value); setFetchState('idle'); setFetchError(null); }}
+                    onKeyDown={e => e.key === 'Enter' && handleFetchFiles()}
+                    style={{ fontFamily: 'var(--mono)', fontSize: 11 }}
+                  />
+                  {fetchState === 'error' && (
+                    <div style={{
+                      marginTop: 6, padding: '8px 12px',
+                      background: 'rgba(230,57,70,.1)',
+                      border: '1px solid rgba(230,57,70,.3)',
+                      borderRadius: 6,
+                      fontFamily: 'var(--mono)', fontSize: 10,
+                      color: '#ff8080', display: 'flex', alignItems: 'center', gap: 8
+                    }}>
+                      <span>⚠</span>{fetchError}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="form-actions">
+                <button
+                  className="btn btn-primary"
+                  onClick={handleFetchFiles}
+                  disabled={!magnetLink.trim() || fetchState === 'loading'}
+                >
+                  ▶ Fetch Files
+                </button>
               </div>
             </div>
-          </div>
 
-          <div className="form-actions">
-            <button className="btn btn-primary" onClick={handlePlay}>▶ Load Stream</button>
-            {active && <button className="btn btn-ghost" onClick={handleReset}>✕ Clear</button>}
-          </div>
-          {error && <div className="error-box"><span>⚠</span>{error}</div>}
-        </div>
+            {/* ── STEP 2 ── Select File ── */}
+            <div className="wizard-panel">
+              <div className="form-grid">
+                <div className="form-group full">
+                  <label htmlFor="fileSelect">
+                    Video File
+                    {torrentFiles.length > 0 && (
+                      <span className="file-count-badge">{torrentFiles.length} files</span>
+                    )}
+                  </label>
+                  <select
+                    id="fileSelect"
+                    className="file-select"
+                    value={draft.fileId}
+                    onChange={handleChange('fileId')}
+                  >
+                    {torrentFiles.map(f => (
+                      <option key={f.id} value={f.id}>
+                        {f.name}{f.sizeLabel ? `  —  ${f.sizeLabel}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="mimeType">MIME Type</label>
+                  <select id="mimeType" value={draft.mimeType} onChange={handleChange('mimeType')}>
+                    <option value="video/mp4">video/mp4 — MP4</option>
+                    <option value="video/webm">video/webm — WebM</option>
+                    <option value="application/x-mpegURL">application/x-mpegURL — HLS</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ justifyContent: 'flex-end', paddingTop: 22 }}>
+                  <div style={{ fontFamily: 'var(--mono)', fontSize: 10, color: 'var(--muted)' }}>
+                    Hash&nbsp;<span style={{ color: 'var(--text)', wordBreak: 'break-all' }}>{infoHash.slice(0,16)}…</span>
+                  </div>
+                </div>
+              </div>
+              <div className="form-actions">
+                <button className="btn btn-primary" onClick={handlePlay}>▶ Load Stream</button>
+                <button className="btn-back" onClick={handleFullReset}>← Back</button>
+                {active && <button className="btn btn-ghost" onClick={handleReset}>✕ Clear</button>}
+              </div>
+              {error && <div className="error-box"><span>⚠</span>{error}</div>}
+            </div>
 
+          </div>{/* /wizard-track */}
+        </div>{/* /wizard-viewport */}
+
+        {/* ══════════════════════════════════
+            PLAYER (shown after Load Stream)
+        ══════════════════════════════════ */}
         {active ? (
           <div className="player-card">
             {/* ── Player bar ── */}
@@ -1353,8 +1629,6 @@ function readFileAsText(file) {
                 <span className="badge badge-mime">
                   {MIME_LABELS[active.mimeType] || active.mimeType}
                 </span>
-
-                {/* CC toggle */}
                 <button
                   className={`cc-toggle-btn${showSubPanel ? ' active' : ''}`}
                   onClick={() => setShowSubPanel(v => !v)}
@@ -1368,7 +1642,6 @@ function readFileAsText(file) {
               </div>
             </div>
 
-            {/* ── Subtitle panel (collapsible) ── */}
             {showSubPanel && (
               <SubtitlePanel
                 tracks={subtitleTracks}
@@ -1380,7 +1653,6 @@ function readFileAsText(file) {
               />
             )}
 
-            {/* ── Keyboard hints ── */}
             <div className="kbd-hints">
               {[
                 ['Double-tap ←', 'Rewind 10s'],
@@ -1396,7 +1668,6 @@ function readFileAsText(file) {
               ))}
             </div>
 
-            {/* ── Video player ── */}
             <VideoPlayer
               key={`${active.infoHash}::${active.fileId}`}
               infoHash={active.infoHash}
@@ -1407,7 +1678,6 @@ function readFileAsText(file) {
               onMoovStatus={setMoovStatus}
             />
 
-            {/* ── Meta footer ── */}
             <div className="meta-row">
               <div className="meta-item">
                 <span className="meta-key">Info Hash</span>
@@ -1429,10 +1699,15 @@ function readFileAsText(file) {
               )}
             </div>
           </div>
+        ) : step === 2 ? (
+          <div className="empty-state">
+            <div className="empty-icon">◈</div>
+            <div className="empty-label">Select a file above and press Load Stream</div>
+          </div>
         ) : (
           <div className="empty-state">
             <div className="empty-icon">◈</div>
-            <div className="empty-label">Enter an info hash and file id to begin</div>
+            <div className="empty-label">Enter a magnet link to begin</div>
           </div>
         )}
       </>

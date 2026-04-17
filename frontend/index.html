@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Torrent Video Player</title>
+  <title>MagnetPlay Video Player</title>
 
   <link href="https://cdnjs.cloudflare.com/ajax/libs/video.js/8.10.0/video-js.min.css" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/video.js/8.10.0/video.min.js"></script>
@@ -744,7 +744,7 @@ function makeSkipSVG(dir) {
       const p   = this.player();
       const dur = isFinite(p.duration()) ? p.duration() : Infinity;
       p.currentTime(Math.max(0, Math.min(dur, p.currentTime() + this._secs)));
-      p.trigger({ type: 'tvp-skip', seconds: this._secs });
+      p.trigger({ type: 'mp-skip', seconds: this._secs });
     }
     buildCSSClass() { return `vjs-skip-btn ${super.buildCSSClass()}`; }
     createEl() {
@@ -770,7 +770,7 @@ function makeSkipSVG(dir) {
 if (videojs.Vhs) {
   videojs.Vhs.xhr.beforeRequest = function(options) {
     options.headers = options.headers || {};
-    options.headers['X-Player'] = 'tvp/1.0';
+    options.headers['X-Player'] = 'mp/1.0';
     return options;
   };
 }
@@ -1227,7 +1227,7 @@ function readFileAsText(file) {
       player.on('seeking',  () => console.debug('[VideoPlayer] seeking →', player.currentTime().toFixed(2)));
       player.on('stalled',  () => console.debug('[VideoPlayer] stalled'));
 
-      player.on('tvp-skip', (e) => {
+      player.on('mp-skip', (e) => {
         const side    = e.seconds > 0 ? 'right' : 'left';
         const absSecs = Math.abs(e.seconds);
         setSkipState(prev => {
@@ -1315,7 +1315,7 @@ function readFileAsText(file) {
 
     /* Inject a <style> tag that overrides the cue font-size live */
     useEffect(() => {
-      const styleId = 'tvp-sub-size';
+      const styleId = 'mp-sub-size';
       let el = document.getElementById(styleId);
       if (!el) {
         el = document.createElement('style');
@@ -1481,8 +1481,8 @@ function readFileAsText(file) {
     return (
       <>
         <header className="header">
-          <span className="header-logo">▶ TVP</span>
-          <span className="header-title">Torrent Video Player</span>
+          <span className="header-logo">▶ MagnetPlay</span>
+          <span className="header-title">MagnetPlay Video Player</span>
         </header>
 
         {/* ══════════════════════════

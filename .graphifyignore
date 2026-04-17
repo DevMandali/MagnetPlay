@@ -1,0 +1,38 @@
+# Graphify & Environment
+graphify-out/
+.venv/
+.git/
+
+# Spring Boot / Java
+target/
+build/
+.gradle/
+.m2/
+.settings/
+.classpath/
+.project/
+
+# Go
+vendor/
+*.exe
+*.test
+__debug_bin
+
+# gRPC Generated Files (Focus on logic, not boilerplate)
+**/generated-sources/
+**/generated/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+backend/.idea/*
+backend/go-server/downloads/*
+backend/mp-spring/target/*
+backend/go-server/proto/
+
+docs/
+
+frontend/node_modules/
+frontend/dist/

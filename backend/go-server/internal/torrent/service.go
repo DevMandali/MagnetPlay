@@ -7,6 +7,7 @@ import (
 	"log"
 	"mime"
 	"path/filepath"
+	"strings"
 	"time"
 
 	pb "server/proto"
@@ -191,6 +192,10 @@ func (s *TorrentService) StreamFile(req *pb.StreamRequest, stream pb.TorrentServ
 		// n, readErr := reader.Read(buf[:toRead])
 		n, readErr := io.ReadFull(reader, buf[:toRead])
 		if readErr != nil && readErr != io.EOF && readErr != io.ErrUnexpectedEOF {
+			if strings.Contains(readErr.Error(), "resync") {
+				time.Sleep(500 * time.Millisecond) // anacrolix may return a "resync" error if the piece isn't fully available yet - this is expected during streaming as pieces are being downloaded.
+				continue                           // retry
+			}
 			//Distinguish between client disconnect and actualky read errors
 			if ctx.Err() != nil {
 				return nil

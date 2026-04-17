@@ -55,13 +55,13 @@ func (r *Repository) GetOrAdd(ctx context.Context, magnetURL string, infoHash st
 	case <-t.GotInfo():
 		// metadata resolved
 	case <-time.After(r.metadataTimeout):
-		t.Drop()
+		// t.Drop()
 		return nil, fmt.Errorf("timeout waiting for torrent metadata")
 	case <-infoCtx.Done():
-		t.Drop()
+		// t.Drop()
 		return nil, fmt.Errorf("context cancelled while waiting for torrent metadata: %w", infoCtx.Err())
 	case <-ctx.Done():
-		t.Drop()
+		// t.Drop()
 		return nil, status.FromContextError(ctx.Err()).Err()
 	}
 

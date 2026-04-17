@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
@@ -71,35 +70,30 @@ public class TorrentGrpcClient {
 
     // ─── StreamFile ──────────────────────────────────────────────────────────
     public Flux<FileChunk> streamFile(StreamRequest request) {
-        return Flux.<FileChunk>create(sink -> {
-            try {
-                // Long deadline - a full movie stream can take hours
-                Iterator<FileChunk> iter = torrentServiceBlockingStub
+        return Flux.<FileChunk, Iterator<FileChunk>>generate(
+                () -> torrentServiceBlockingStub
                         .withDeadlineAfter(streamDeadlineHours, TimeUnit.HOURS)
-                        .streamFile(request);
-
-                while(iter.hasNext()) {
-                    // Check if downstream (HTTP Client) cancelled
-                    if(sink.isCancelled()) {
-                        logger.debug("downstream cancelled stream for {}/{} at byte {}", request.getTorrentId(), request.getFileId(), request.getStartByte());
-                        break;
+                        .streamFile(request),
+                (iter, sink) -> {
+                    try {
+                        if (iter.hasNext()) {
+                            sink.next(iter.next());
+                        } else {
+                            sink.complete();
+                        }
+                    } catch (StatusRuntimeException e) {
+                        if (e.getStatus().getCode() == Status.Code.CANCELLED) {
+                            logger.debug("gRPC stream cancelled for {}/{}", request.getTorrentId(), request.getFileId());
+                            sink.complete();
+                        } else {
+                            logger.error("gRPC stream error for {}/{}", request.getTorrentId(), request.getFileId());
+                            sink.error(e);
+                        }
+                    } catch (Exception e) {
+                        sink.error(e);
                     }
-                    sink.next(iter.next());
-                }
-                sink.complete();
-            } catch (StatusRuntimeException e) {
-                if(e.getStatus().getCode() == Status.Code.CANCELLED) {
-                    // Normal - client seeked away or closed the player
-                    logger.debug("gRPC stream cancelled for {}/{}", request.getTorrentId(), request.getFileId());
-                    sink.complete();
-                } else {
-                    logger.error("gRPC stream error for {}/{}", request.getTorrentId(), request.getFileId());
-                    sink.error(e);
-                }
-            } catch (Exception e) {
-                sink.error(e);
-            }
-        }, FluxSink.OverflowStrategy.BUFFER)
+                    return iter;
+                })
                 .subscribeOn(grpcScheduler);
     }
 }

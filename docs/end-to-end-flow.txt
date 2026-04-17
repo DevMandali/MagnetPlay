@@ -1,0 +1,172 @@
+MagnetPlay — End-to-End Flow
+============================
+
+SYSTEM LAYERS
+-------------
+
++-------------------------------------------------------------+
+|                    BROWSER (frontend)                        |
+|         React 18 + Video.js 8  (index.html, CDN)           |
++------------------------+------------------------------------+
+                         |
+                    HTTP REST  (port 8080)
+                         |
++------------------------v------------------------------------+
+|              SPRING BOOT  (mp-spring, Java 17)              |
+|         WebFlux - reactive, non-blocking                    |
+|         TorrentController -> TorrentService -> gRPC client  |
++------------------------+------------------------------------+
+                         |
+              gRPC server-side streaming (port 50051)
+                         |
++------------------------v------------------------------------+
+|              GO SIDECAR  (go-server)                        |
+|         anacrolix/torrent BitTorrent engine                 |
+|         TorrentService -> Repository -> torrent client      |
++------------------------+------------------------------------+
+                         |
+              BitTorrent (DHT + Trackers)
+                         |
++------------------------v------------------------------------+
+|                   PEER NETWORK                              |
++-------------------------------------------------------------+
+
+
+FLOW 1 — ADD TORRENT (magnet link)
+-----------------------------------
+
+User pastes magnet link
+        |
+        v
+[Frontend] POST /v1/torrent/add
+          Body: { "magnet": "magnet:?xt=urn:btih:..." }
+        |
+        v
+[Spring] TorrentController.addTorrent()
+         -> TorrentService.addTorrentToSession()
+         -> gRPC: TorrentRequest { magnetUrl }
+        |
+        v
+[Go]  service.AddTorrent()
+      -> repo.GetOrAdd()               <- deduplicates by infoHash
+      -> anacrolix adds magnet to client
+      -> waits on t.GotInfo()          <- DHT resolves metadata (up to 180s)
+      -> toFileInfoList()              <- filters to video files only
+                                          fileId = "{infoHash}:{fileIndex}"
+        |
+        v
+[Go -> Spring] TorrentResponse {
+    torrentId, name,
+    files: [ { fileId, fileName, size, mimeType } ]
+}
+        |
+        v
+[Spring -> Browser] HTTP 201 TorrentAddResponse
+        |
+        v
+[Frontend] renders file list -> user picks a video file
+
+
+FLOW 2 — STREAM VIDEO (initial play)
+--------------------------------------
+
+User clicks Play
+        |
+        v
+[Frontend] Video.js sets src to:
+           http://localhost:8080/v1/torrent/stream/{infoHash}?fileId={id}
+           Browser sends:  GET + Range: bytes=0-
+        |
+        v
+[Spring] TorrentController.stream()
+         -> service.getFileInfo()      <- gRPC: FileInfoRequest
+         -> builds HTTP 206 response
+         -> service.streamFile()       <- gRPC: StreamRequest { startByte, endByte }
+         -> maps FileChunk -> DataBuffer (Flux)
+         -> .onBackpressureBuffer(32)  <- buffers up to 8 MB if browser is slow
+        |
+        v
+[Go]  service.StreamFile()
+      -> repo.GetFile()
+      -> f.NewReader()
+           reader.SetResponsive()     <- prioritize pieces reader currently needs
+           reader.SetReadahead(20MB)  <- pre-fetch ~5-10s ahead
+      -> prioritize():
+           pieces[0..4]   -> PriorityNow   <- moov atom (MP4 metadata)
+           pieces[-5..-1] -> PriorityNow   <- end metadata / seek table
+           pieces[start..end] -> PriorityNext <- requested range
+      -> loop: io.ReadFull() -> gRPC Send(FileChunk{ data[256KB], offset, isLast })
+        |
+        v
+[Go -> Spring] stream of FileChunk messages (256 KB each)
+        |
+        v
+[Spring -> Browser] HTTP 206 Partial Content
+    Headers:
+        Content-Type: video/mp4
+        Accept-Ranges: bytes
+        Content-Range: bytes 0-N/Total
+        Content-Length: N
+    Body: chunked binary stream
+        |
+        v
+[Video.js] decodes + renders video
+
+
+FLOW 3 — SEEK (user scrubs timeline)
+--------------------------------------
+
+User drags seekbar to 00:02:30
+        |
+        v
+[Video.js] reads moov atom sample table -> calculates byte offset
+           sends new Range request:
+           GET /stream/{infoHash}?fileId=... + Range: bytes=45000000-
+        |
+        v
+[Spring] new StreamRequest { startByte=45000000, endByte=fileSize }
+        |
+        v
+[Go]  reader.Seek(45000000, io.SeekStart)
+      re-prioritizes pieces around new position
+      SetResponsive() ensures anacrolix fetches those pieces first
+      -> streams from new offset
+        |
+        v
+[Browser] playback resumes from seeked position
+          (old stream cancelled -> Spring logs "stream cancelled")
+
+
+KEY DATA SHAPES
+---------------
+
+FileID format:  "{infoHash}:{fileIndex}"
+                 e.g. "abc123def456:2"
+
+gRPC StreamRequest:
+    torrentId  string   (infoHash)
+    fileId     string
+    startByte  int64    (inclusive)
+    endByte    int64    (exclusive in gRPC, inclusive in HTTP Range)
+
+FileChunk:
+    data    bytes   (256 KB)
+    offset  int64
+    isLast  bool
+
+
+PIECE PRIORITY STRATEGY
+------------------------
+
+File on disk (torrent pieces):
+
+[0][1][2][3][4]....[N-5][N-4][N-3][N-2][N-1][N]
+ ^  ^  ^  ^  ^          ^    ^    ^    ^    ^  ^
+ +--+--+--+--+          +----+----+----+----+--+
+  PriorityNow                 PriorityNow
+  (moov atom)                 (end metadata/seek table)
+
+                [startPiece ........ endPiece]
+                 ^                          ^
+                 +-------- PriorityNext ----+
+                           (current playback range)

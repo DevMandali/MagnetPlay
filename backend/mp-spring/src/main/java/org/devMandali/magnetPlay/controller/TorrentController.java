@@ -135,10 +135,6 @@ public class TorrentController {
                     buffer.write(bytes);
                     return buffer;
                 })
-                // onBackpressureBuffer: if the HTTP client is slower than gRPC delivery,
-                // buffer up to 32 chunks (32 × 256KB = 8 MB max memory per stream)
-                // before applying flow control upstream.
-                .onBackpressureBuffer(32)
                 .doOnComplete(() -> logger.debug("stream complete: {}/{} bytes={}-{}", infoHash, fileId, startByte, endByte))
                 .doOnCancel(() -> logger.debug("stream cancelled: {}/{} at startByte={}", infoHash, fileId, startByte))
                 .doOnError(e -> logger.error("stream error: {}/{}", infoHash, fileId, e));

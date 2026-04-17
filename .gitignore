@@ -6,3 +6,5 @@ backend/mp-spring/target/*
 backend/go-server/proto/
 **/graphify-out/cache/
 graphify-out/
+frontend/node_modules/
+frontend/dist/

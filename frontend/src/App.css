@@ -190,6 +190,25 @@ select option { background: var(--bg); }
 .vjs-play-progress, .vjs-volume-level { background: var(--accent) !important; }
 .vjs-load-progress { background: rgba(230,57,70,.25) !important; }
 
+/* ── Stats button in vjs control bar ───────── */
+.video-js .vjs-stats-btn { position: relative !important; overflow: visible !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 2.6em !important; opacity: .85; transition: opacity .15s !important; }
+.video-js .vjs-stats-btn:hover { opacity: 1 !important; }
+.video-js .vjs-stats-btn .vjs-icon-placeholder::before { content: '' !important; }
+.video-js .vjs-stats-btn svg { display: block; pointer-events: none; }
+
+/* ── Stats hover popup ──────────────────────── */
+.vjs-stats-popup { position: absolute; bottom: calc(100% + 8px); right: 0; left: auto; transform: none; z-index: 200; background: rgba(10,10,15,.97); border: 1px solid #1e1e2e; border-radius: 8px; padding: 12px 14px; min-width: 200px; max-width: 90vw; pointer-events: none; white-space: nowrap; box-shadow: 0 8px 32px rgba(0,0,0,.6); }
+.vsp-title { font-family: 'Space Mono',monospace; font-size: 8px; letter-spacing: 2.5px; text-transform: uppercase; color: #5a5a72; margin-bottom: 10px; display: block; }
+.vsp-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 16px; margin-bottom: 10px; align-items: center; }
+.vsp-key { font-family: 'Space Mono',monospace; font-size: 8px; letter-spacing: 2px; text-transform: uppercase; color: #5a5a72; }
+.vsp-val { font-family: 'Space Mono',monospace; font-size: 10px; color: #e8e8f0; }
+.vsp-val.ok { color: #2ecc71; }
+.vsp-val.accent { color: #e63946; }
+.vsp-bar { height: 3px; background: #1e1e2e; border-radius: 2px; overflow: hidden; }
+.vsp-fill { height: 100%; background: #e63946; border-radius: 2px; transition: width .4s ease; }
+.vsp-fill.complete { background: #2ecc71; }
+.vsp-loading { font-family: 'Space Mono',monospace; font-size: 9px; color: #5a5a72; }
+
 /* ── Skip buttons ───────────────────────────── */
 .vjs-skip-btn { cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 2.6em !important; opacity: .85; transition: opacity .15s, transform .12s !important; }
 .vjs-skip-btn:hover { opacity: 1 !important; transform: scale(1.15) !important; }

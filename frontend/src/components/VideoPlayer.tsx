@@ -179,6 +179,7 @@ export default function VideoPlayer({ infoHash, fileId, mimeType, subtitleTracks
           'progressControl',
           'remainingTimeDisplay',
           'playbackRateMenuButton',
+          { name: 'StatsButton', infoHash, fileId },
           'fullscreenToggle',
         ],
       },

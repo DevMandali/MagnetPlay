@@ -1,5 +1,119 @@
 import videojs from 'video.js';
 
+// ── Helpers shared by stats popup ────────────────────────────────────────────
+
+function fmtBytes(b: number): string {
+  if (b <= 0) return '0 B';
+  if (b < 1024) return `${b} B`;
+  if (b < 1024 ** 2) return `${(b / 1024).toFixed(1)} KB`;
+  if (b < 1024 ** 3) return `${(b / 1024 ** 2).toFixed(1)} MB`;
+  return `${(b / 1024 ** 3).toFixed(2)} GB`;
+}
+
+function fmtSpeed(bps: number): string {
+  return bps <= 0 ? '—' : `${fmtBytes(bps)}/s`;
+}
+
+const STATS_SVG = `
+  <svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M12 16l-5-5h3V5h4v6h3z" fill="white"/>
+    <rect x="5" y="18" width="14" height="2" rx="1" fill="white"/>
+  </svg>`;
+
+// ── registerStatsButton ───────────────────────────────────────────────────────
+
+export function registerStatsButton(): void {
+  if (videojs.getComponent('StatsButton')) return;
+
+  const Button = videojs.getComponent('Button');
+
+  class StatsButton extends Button {
+    private readonly infoHash: string;
+    private readonly fileId: string;
+    private popup: HTMLElement | null = null;
+    private pollInterval: ReturnType<typeof setInterval> | null = null;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(player: ReturnType<typeof videojs>, options: any) {
+      super(player, options);
+      // NOTE: field initializers (= null) run after super() with useDefineForClassFields:true.
+      // All DOM setup must happen here, after super() and after field initializers fire.
+      this.infoHash = options.infoHash ?? '';
+      this.fileId   = options.fileId   ?? '';
+      this.addClass('vjs-stats-btn');
+      this.controlText('Download Status');
+
+      this.popup = document.createElement('div');
+      this.popup.className = 'vjs-stats-popup';
+      this.popup.innerHTML = '<span class="vsp-loading">Loading…</span>';
+      this.popup.style.display = 'none';
+      this.el().appendChild(this.popup);
+
+      this.el().addEventListener('mouseenter', () => this.showPopup());
+      this.el().addEventListener('mouseleave', () => this.hidePopup());
+    }
+
+    createEl() {
+      const el = super.createEl('button', {}, { type: 'button' });
+      const ph = el.querySelector('.vjs-icon-placeholder');
+      if (ph) ph.innerHTML = STATS_SVG;
+      return el;
+    }
+
+    private showPopup() {
+      if (!this.popup) return;
+      this.popup.style.display = 'block';
+      this.doPoll();
+      this.pollInterval = setInterval(() => this.doPoll(), 2000);
+    }
+
+    private hidePopup() {
+      if (!this.popup) return;
+      this.popup.style.display = 'none';
+      if (this.pollInterval) { clearInterval(this.pollInterval); this.pollInterval = null; }
+    }
+
+    private async doPoll() {
+      try {
+        const res = await fetch(
+          `/v1/torrent/stats/${this.infoHash}?fileId=${encodeURIComponent(this.fileId)}`
+        );
+        if (!res.ok || !this.popup) return;
+        const s = await res.json() as {
+          totalSize: number; downloadedBytes: number;
+          completionPct: number; downloadSpeedBps: number;
+        };
+        const pct      = Math.min(Math.max(s.completionPct, 0), 100);
+        const complete = pct >= 99.9;
+        this.popup.innerHTML = `
+          <div class="vsp-title">Download Status</div>
+          <div class="vsp-grid">
+            <span class="vsp-key">Total</span>
+            <span class="vsp-val">${fmtBytes(s.totalSize)}</span>
+            <span class="vsp-key">Downloaded</span>
+            <span class="vsp-val${complete ? ' ok' : ''}">${fmtBytes(s.downloadedBytes)}</span>
+            <span class="vsp-key">Progress</span>
+            <span class="vsp-val${complete ? ' ok' : ' accent'}">${pct.toFixed(1)}%</span>
+            <span class="vsp-key">Speed</span>
+            <span class="vsp-val">${complete ? '— seeding' : fmtSpeed(s.downloadSpeedBps)}</span>
+          </div>
+          <div class="vsp-bar">
+            <div class="vsp-fill${complete ? ' complete' : ''}" style="width:${pct}%"></div>
+          </div>`;
+      } catch { /* retain last render on network error */ }
+    }
+
+    dispose() {
+      this.hidePopup();
+      super.dispose();
+    }
+  }
+
+  videojs.registerComponent('StatsButton', StatsButton);
+}
+
+// ── Skip buttons ──────────────────────────────────────────────────────────────
+
 function makeSkipSVG(dir: 'back' | 'forward'): string {
   const isBack = dir === 'back';
   const arc = isBack

@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import org.devMandali.magnetPlay.FileInfoResponse;
 import org.devMandali.magnetPlay.model.TorrentAddRequest;
 import org.devMandali.magnetPlay.model.TorrentAddResponse;
+import org.devMandali.magnetPlay.model.TorrentStatsResponse;
 import org.devMandali.magnetPlay.service.TorrentService;
 import org.devMandali.magnetPlay.util.TorrentUtil;
 import org.slf4j.Logger;
@@ -69,6 +70,15 @@ public class TorrentController {
                     }
                     return Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
                 });
+    }
+
+    @GetMapping("/stats/{infoHash}")
+    public Mono<ResponseEntity<TorrentStatsResponse>> getStats(
+            @PathVariable String infoHash,
+            @RequestParam String fileId) {
+        return service.getTorrentStats(infoHash, fileId)
+                .map(ResponseEntity::ok)
+                .onErrorReturn(ResponseEntity.notFound().<TorrentStatsResponse>build());
     }
 
     @GetMapping("/stream/{infoHash}")

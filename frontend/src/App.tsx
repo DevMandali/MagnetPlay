@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { TorrentFile, ActivePlayer, SubtitleTrack, MoovStatus, FetchState } from './types';
 import { srtToVtt, readFileAsText } from './lib/utils';
 import SubtitlePanel from './components/SubtitlePanel';
+import StatusPanel from './components/StatusPanel';
 import VideoPlayer from './components/VideoPlayer';
 
 const MIME_LABELS: Record<string, string> = {
@@ -36,6 +37,7 @@ export default function App() {
 
   // Subtitle state
   const [showSubPanel, setShowSubPanel] = useState(false);
+  const [showStatusPanel, setShowStatusPanel] = useState(false);
   const [subFontSize, setSubFontSize] = useState(100);
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([]);
   const blobUrls = useRef<Record<string, string>>({});
@@ -95,6 +97,7 @@ export default function App() {
     setError(null);
     setMoovStatus('idle');
     setShowSubPanel(false);
+    setShowStatusPanel(false);
     Object.values(blobUrls.current).forEach(u => URL.revokeObjectURL(u));
     blobUrls.current = {};
     setSubtitleTracks([]);
@@ -304,6 +307,13 @@ export default function App() {
               )}
               <span className="badge badge-mime">{MIME_LABELS[active.mimeType] ?? active.mimeType}</span>
               <button
+                className={`stat-toggle-btn${showStatusPanel ? ' active' : ''}`}
+                onClick={() => setShowStatusPanel(v => !v)}
+                title="Download status"
+              >
+                DL
+              </button>
+              <button
                 className={`cc-toggle-btn${showSubPanel ? ' active' : ''}`}
                 onClick={() => setShowSubPanel(v => !v)}
                 title="Subtitles / Captions"
@@ -315,6 +325,10 @@ export default function App() {
               </button>
             </div>
           </div>
+
+          {showStatusPanel && active && (
+            <StatusPanel infoHash={active.infoHash} fileId={active.fileId} />
+          )}
 
           {showSubPanel && (
             <SubtitlePanel

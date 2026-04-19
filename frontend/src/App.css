@@ -154,6 +154,25 @@ select option { background: var(--bg); }
 .subtitle-size-reset { font-family: var(--mono); font-size: 9px; color: var(--muted); background: none; border: 1px solid var(--border); border-radius: 3px; padding: 2px 7px; cursor: pointer; flex-shrink: 0; transition: all 0.13s; letter-spacing: 0.5px; }
 .subtitle-size-reset:hover { border-color: var(--muted); color: var(--text); }
 
+/* ── Status toggle btn ──────────────────────── */
+.stat-toggle-btn { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 4px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-family: var(--mono); font-size: 9px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); transition: all 0.15s; flex-shrink: 0; }
+.stat-toggle-btn:hover { border-color: var(--muted); color: var(--text); }
+.stat-toggle-btn.active { background: rgba(230,57,70,.12); border-color: var(--accent); color: var(--accent); }
+
+/* ── Status panel ───────────────────────────── */
+.status-panel { border-bottom: 1px solid var(--border); background: #0d0d14; overflow: hidden; animation: subPanelIn 0.2s cubic-bezier(.22,.61,.36,1) both; }
+.status-panel-inner { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+.status-panel-header { display: flex; align-items: center; justify-content: space-between; }
+.status-panel-title { font-family: var(--mono); font-size: 9px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); }
+.status-stat-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 20px; align-items: center; }
+.status-stat-key { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+.status-stat-val { font-family: var(--mono); font-size: 11px; color: var(--text); }
+.status-stat-val.accent { color: var(--accent); }
+.status-stat-val.ok { color: var(--ok); }
+.status-progress-bar { height: 3px; border-radius: 2px; background: var(--border); overflow: hidden; }
+.status-progress-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width 0.5s ease; }
+.status-progress-fill.complete { background: var(--ok); }
+
 /* ── Video wrapper ──────────────────────────── */
 .video-player-wrapper { position: relative; background: #000; -webkit-user-drag: none; overflow: hidden; }
 

@@ -21,3 +21,11 @@ export interface SubtitleTrack {
 
 export type MoovStatus = 'idle' | 'checking' | 'front' | 'end' | 'unknown' | 'n/a';
 export type FetchState = 'idle' | 'loading' | 'error';
+
+export interface TorrentFileStats {
+  fileId: string;
+  totalSize: number;
+  downloadedBytes: number;
+  completionPct: number;
+  downloadSpeedBps: number;
+}

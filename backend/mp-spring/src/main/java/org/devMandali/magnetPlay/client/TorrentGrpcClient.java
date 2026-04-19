@@ -7,6 +7,8 @@ import org.devMandali.magnetPlay.*;
 import org.devMandali.magnetPlay.FileChunk;
 import org.devMandali.magnetPlay.FileInfoRequest;
 import org.devMandali.magnetPlay.FileInfoResponse;
+import org.devMandali.magnetPlay.GetTorrentStatsRequest;
+import org.devMandali.magnetPlay.GetTorrentStatsResponse;
 import org.devMandali.magnetPlay.StreamRequest;
 import org.devMandali.magnetPlay.TorrentRequest;
 import org.devMandali.magnetPlay.TorrentResponse;
@@ -66,6 +68,19 @@ public class TorrentGrpcClient {
                 .getFileInfo(request))
                 .subscribeOn(grpcScheduler)
                 .doOnError(e -> logger.error("getFileInfo gRPC error for {}/{}", request.getInfoHash(), request.getFileId(), e));
+    }
+
+    // ─── GetTorrentStats ─────────────────────────────────────────────────────
+
+    public Mono<GetTorrentStatsResponse> getTorrentStats(String infoHash, String fileId) {
+        return Mono.fromCallable(() -> torrentServiceBlockingStub
+                .withDeadlineAfter(5, TimeUnit.SECONDS)
+                .getTorrentStats(GetTorrentStatsRequest.newBuilder()
+                        .setInfoHash(infoHash)
+                        .setFileId(fileId)
+                        .build()))
+                .subscribeOn(grpcScheduler)
+                .doOnError(e -> logger.error("getTorrentStats gRPC error for {}/{}", infoHash, fileId, e));
     }
 
     // ─── StreamFile ──────────────────────────────────────────────────────────

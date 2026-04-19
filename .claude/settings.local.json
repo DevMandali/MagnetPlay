@@ -6,7 +6,11 @@
       "Bash(python *)",
       "Bash(py -c \"import graphify; print\\('ok'\\)\")",
       "Bash(python3 -c \"import graphify; print\\('ok'\\)\")",
-      "Bash(py *)"
+      "Bash(py *)",
+      "Bash(/c/Users/barge/AppData/Local/Programs/Python/Python311/python.exe -c \"import sys; open\\('.graphify_python', 'w'\\).write\\(sys.executable\\); print\\(sys.executable\\)\")"
     ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": true
   }
 }

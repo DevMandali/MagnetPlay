@@ -19,6 +19,9 @@ service TorrentService {
 
   // Server-side streaming: stream file content chunk by chunk
   rpc StreamFile(StreamRequest) returns (stream FileChunk);
+
+  // Unary: get download stats for a specific file (size, progress, speed)
+  rpc GetTorrentStats(GetTorrentStatsRequest) returns (GetTorrentStatsResponse);
 }
 
 // ─── FileInfo ──────────────────────────────────────────────────────────────
@@ -74,4 +77,23 @@ message FileChunk {
   bytes data     = 1;
   int64 offset   = 2;  // byte offset of this chunk within the file
   bool  is_last  = 3;
+}
+
+// ─── TorrentStats ─────────────────────────────────────────────────────────
+
+message TorrentFileStats {
+  string file_id            = 1;
+  int64  total_size         = 2;
+  int64  downloaded_bytes   = 3;
+  double download_speed_bps = 4;  // rolling 5-second average, bytes/sec
+  double completion_pct     = 5;
+}
+
+message GetTorrentStatsRequest {
+  string info_hash = 1;
+  string file_id   = 2;
+}
+
+message GetTorrentStatsResponse {
+  TorrentFileStats stats = 1;
 }

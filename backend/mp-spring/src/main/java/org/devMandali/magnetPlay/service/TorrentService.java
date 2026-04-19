@@ -11,6 +11,7 @@ import org.devMandali.magnetPlay.TorrentResponse;
 import org.devMandali.magnetPlay.client.TorrentGrpcClient;
 import org.devMandali.magnetPlay.model.TorrentAddRequest;
 import org.devMandali.magnetPlay.model.TorrentAddResponse;
+import org.devMandali.magnetPlay.model.TorrentStatsResponse;
 import org.devMandali.magnetPlay.util.ByteUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,6 +79,21 @@ public class TorrentService {
      * @param startByte inclusive start byte (for HTTP Range seek support)
      * @param endByte   exclusive end byte; -1 to stream to EOF
      */
+    public Mono<TorrentStatsResponse> getTorrentStats(String infoHash, String fileId) {
+        return grpcClient.getTorrentStats(infoHash, fileId)
+                .map(r -> {
+                    var s = r.getStats();
+                    return new TorrentStatsResponse(
+                            s.getFileId(),
+                            s.getTotalSize(),
+                            s.getDownloadedBytes(),
+                            s.getCompletionPct(),
+                            s.getDownloadSpeedBps()
+                    );
+                })
+                .doOnError(e -> logger.error("getTorrentStats error for {}/{}", infoHash, fileId, e));
+    }
+
     public Flux<FileChunk> streamFile(String infoHash, String fileId, long startByte, long endByte) {
         StreamRequest request = StreamRequest.newBuilder()
                 .setTorrentId(infoHash)

@@ -26,7 +26,7 @@ Peer Network (DHT + Trackers)
 - File IDs are `{infoHash}:{fileIndex}` (e.g. `abc123:0`), generated in `go-server/internal/torrent/mapper.go`.
 - gRPC `StreamFile` is server-side streaming: Go pushes 256KB `FileChunk` messages; Spring wraps them as a reactive `Flux<DataBuffer>`.
 - Piece prioritization at streaming start: first 5 pieces (moov atom), last 5 pieces (seek metadata), then the requested range — see `service.go:prioritize()`.
-- The frontend is a **single static HTML file** (`frontend/index.html`) using CDN-loaded React 18 + Video.js 8 with Babel standalone. No bundler, no `npm install`.
+- The frontend is a **Vite + React 18 + TypeScript** app (`frontend/src/`). Entry: `frontend/src/main.tsx`. Build: `cd frontend && npm run dev`. Components: `VideoPlayer.tsx`, `SubtitlePanel.tsx`, `NetflixSkipOverlay.tsx`. Types: `frontend/src/types/index.ts`.
 
 ## Shared Proto Contract
 
@@ -60,7 +60,10 @@ cd backend/mp-spring
 ./mvnw spring-boot:run
 ```
 
-**Frontend**: Open `frontend/index.html` directly in a browser, or serve via VS Code Live Server on port 5500. No build step.
+**Frontend** (Vite dev server on port 5173):
+```bash
+cd frontend && npm run dev
+```
 
 ## Build
 
@@ -122,9 +125,12 @@ Examples from history: `Feature(UI)`, `Feature(Player)`, `Feature(CC + Priority 
 
 ## graphify
 
-This project has a graphify knowledge graph at graphify-out/.
+This project has a graphify knowledge graph at `graphify-out/`. The graph stores nodes (files, functions, concepts), edges (calls, imports, inferred dependencies), community clusters, god nodes (highest-edge-count = highest change risk), and hyperedges (cross-cutting flows).
 
-Rules:
-- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
-- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
-- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
+**All Superpowers skills must use the graph before touching files:**
+- Read `graphify-out/GRAPH_REPORT.md` first — god nodes, community map, surprising connections, and knowledge gaps give you architecture context without reading raw files.
+- Use community boundaries as natural task/module split lines when planning or dispatching parallel agents.
+- Use god nodes (top 10 by edge count) as your high-risk file list — flag them in plans and code reviews.
+- Use `/graphify query "<question>"` to BFS/DFS the graph for relevant subgraphs before exploring the codebase directly.
+- After modifying any code file, run `graphify update .` (AST-only, no API cost) to keep the graph current.
+- If `graphify-out/wiki/index.md` exists, navigate it instead of reading raw files.

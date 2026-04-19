@@ -8,6 +8,7 @@ import (
 	"mime"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	pb "server/proto"
@@ -35,11 +36,16 @@ const (
 
 type TorrentService struct {
 	pb.UnimplementedTorrentServiceServer
-	repo *Repository
+	repo          *Repository
+	speedTrackers map[string]*SpeedTracker
+	trackerMu     sync.Mutex
 }
 
 func NewTorrentService(repo *Repository) *TorrentService {
-	return &TorrentService{repo: repo}
+	return &TorrentService{
+		repo:          repo,
+		speedTrackers: make(map[string]*SpeedTracker),
+	}
 }
 
 func (s *TorrentService) AddTorrent(ctx context.Context, req *pb.TorrentRequest) (*pb.TorrentResponse, error) {
@@ -227,6 +233,40 @@ func (s *TorrentService) StreamFile(req *pb.StreamRequest, stream pb.TorrentServ
 	}
 	log.Printf("[COMPLETE] stream complete for %s | sent %d bytes", f.DisplayPath(), offset-startByte)
 	return nil
+}
+
+func (s *TorrentService) GetTorrentStats(ctx context.Context, req *pb.GetTorrentStatsRequest) (*pb.GetTorrentStatsResponse, error) {
+	f, ok := s.repo.GetFile(req.GetInfoHash(), req.GetFileId())
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "file not found: %s/%s", req.GetInfoHash(), req.GetFileId())
+	}
+
+	downloaded := f.BytesCompleted()
+	total := f.Length()
+	var pct float64
+	if total > 0 {
+		pct = float64(downloaded) / float64(total) * 100
+	}
+
+	key := req.GetInfoHash() + "|" + req.GetFileId()
+	s.trackerMu.Lock()
+	tr, ok := s.speedTrackers[key]
+	if !ok {
+		tr = NewSpeedTracker(5)
+		s.speedTrackers[key] = tr
+	}
+	s.trackerMu.Unlock()
+	tr.Record(downloaded, time.Now())
+
+	return &pb.GetTorrentStatsResponse{
+		Stats: &pb.TorrentFileStats{
+			FileId:           req.GetFileId(),
+			TotalSize:        total,
+			DownloadedBytes:  downloaded,
+			DownloadSpeedBps: tr.SpeedBps(),
+			CompletionPct:    pct,
+		},
+	}, nil
 }
 
 func prioritize(t *lt.Torrent, f *lt.File, start, end int64) {

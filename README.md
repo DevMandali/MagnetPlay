@@ -396,43 +396,90 @@ libtorrent:
 
 ## 🧪 Running Tests
 
-### Run All Tests
+### Go Sidecar
 
 ```bash
-# All components
-./scripts/run-tests.sh
+cd backend/go-server
 
-# Individual components
-cd backend && mvn test
-cd sidecar && go test ./...
-cd frontend && npm test
+# All tests
+go test ./...
+
+# Specific package (verbose)
+go test ./internal/torrent/... -v
+
+# Single test
+go test ./internal/torrent/... -run TestSpeedTracker -v
+
+# Build verify (no tests)
+go build ./...
 ```
 
-### Test Coverage
+### Spring Boot
+
+> **Note:** `./mvnw` wrapper may be missing. Use system `mvn` directly.
 
 ```bash
-# Generate coverage report
-./scripts/coverage.sh
+cd backend/mp-spring
 
-# View coverage in browser
-open coverage/index.html
+# All tests
+mvn test -q 2>&1 | tail -20
+
+# Single test class
+mvn test -Dtest=SessionManagerTest -q
+
+# Single test class (verbose, shows failures)
+mvn test -Dtest=TorrentStatsControllerTest 2>&1 | grep -E "Tests run|BUILD|ERROR|FAIL"
+
+# Compile only (no tests — fast proto check)
+mvn compile -q
 ```
 
-### Integration Tests
+### Frontend (TypeScript)
 
 ```bash
-# Requires Docker
-docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+cd frontend
+
+# Type-check without building
+npx tsc --noEmit
+
+# Dev server (visual verification)
+npm run dev
+# → Open http://localhost:5173
 ```
 
-### Load Testing
+### Integration Smoke Test (manual — requires all services running)
 
+**Terminal 1 — Go sidecar:**
 ```bash
-# Install k6
-brew install k6
+cd backend/go-server && go run main.go
+# Expected: gRPC server listening on :50051
+```
 
-# Run load test
-k6 run tests/load/streaming-test.js
+**Terminal 2 — Spring Boot:**
+```bash
+cd backend/mp-spring && mvn spring-boot:run -q
+# Expected: Started on port 8080
+```
+
+**Terminal 3 — verify endpoints:**
+```bash
+# Add torrent
+curl -s -X POST http://localhost:8080/v1/torrent/add \
+  -H "Content-Type: application/json" \
+  -d '{"magnetUrl": "<magnet-url>"}' | jq .
+
+# List torrents
+curl -s http://localhost:8080/v1/torrent/list | jq .torrents[0].state
+
+# Stats for a file
+curl -s "http://localhost:8080/v1/torrent/stats/<infoHash>?fileId=<fileId>" | jq .
+
+# Pause / resume
+curl -s -X POST http://localhost:8080/v1/torrent/pause/<infoHash>
+curl -s -X POST http://localhost:8080/v1/torrent/resume/<infoHash>
+
+# Active sessions (while streaming)
+curl -s "http://localhost:8080/v1/torrent/sessions?activeOnly=true" | jq .sessions[0]
 ```
 
 ---
@@ -531,6 +578,74 @@ pre-commit run --all-files
 - Java: Google Java Format
 - Go: gofmt + golangci-lint
 - TypeScript: ESLint + Prettier
+
+---
+
+## 🔑 Development Best Practices
+
+### Proto Contract Changes
+
+Any change to `backend/proto/torrent.proto` requires regenerating stubs for both services:
+
+```bash
+# Go stubs (output to backend/go-server/proto/ — gitignored by design)
+cd backend && make -f MakeFile proto
+
+# Java stubs — auto-compiled on next Maven build
+cd backend/mp-spring && mvn compile -q
+```
+
+**Rule:** Never edit generated `*.pb.go` or Java proto files by hand.
+
+### God Nodes — High-Risk Files
+
+Two files have 11+ edges in the knowledge graph. Extra care required:
+
+| File | Risk | Rule |
+|------|------|------|
+| `backend/go-server/internal/torrent/repository.go` | Mutex errors break all torrent ops | Every new method must acquire `r.mu` (RLock for reads, Lock for writes) |
+| `frontend/src/App.tsx` | Center of React component graph | Edit in a single pass when wiring multiple components — two separate touches cause merge conflicts and hook ordering bugs |
+
+### Commit Discipline
+
+- No commits mid-implementation for multi-task features
+- Commit once after all tasks complete and tests pass
+- Commit message format: `Feature(scope): description` (see git log for examples)
+
+### Maven Wrapper
+
+`./mvnw` may be missing on fresh clones. Use system `mvn`:
+
+```bash
+# If ./mvnw fails — install the wrapper
+cd backend/mp-spring && mvn wrapper:wrapper
+# Or just use: mvn <command>
+```
+
+### Go Proto Import Path
+
+The generated proto package lives at `MagnetPlay/backend/proto` (module-relative). Import in Go:
+
+```go
+import pb "MagnetPlay/backend/proto"
+```
+
+The `backend/go-server/proto/` directory is gitignored — regenerate on each clone via `make -f MakeFile proto`.
+
+### TorrentInfo Fields Are Unexported
+
+`repository.go` uses unexported `torrent` and `files` fields. Access via accessor methods:
+
+```go
+info.Torrent()  // returns *torrent.Torrent
+info.Files()    // returns map[string]*torrent.File
+```
+
+Use `repo.GetTorrentInfo(infoHash)` (returns `*TorrentInfo, error`) not `repo.GetTorrent()` (returns `*torrent.Torrent, bool`).
+
+### Session Tracking Behavior
+
+Each HTTP Range request = new streaming session. A single seek creates a new session row — this is correct. VideoJS makes multiple range requests for buffering. Do not conflate session count with viewer count.
 
 ---
 

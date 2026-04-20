@@ -29,3 +29,27 @@ export interface TorrentFileStats {
   completionPct: number;
   downloadSpeedBps: number;
 }
+
+export interface TorrentListItem {
+  torrentId: string;
+  name: string;
+  state: 'TORRENT_ACTIVE' | 'TORRENT_PAUSED' | 'TORRENT_STOPPED';
+  totalSize: number;
+  downloadedBytes: number;
+  completionPct: number;
+  downloadSpeedBps: number;
+  files: Array<{ id: string; name: string; size: number }>;
+}
+
+export interface StreamingSession {
+  sessionId: string;
+  infoHash: string;
+  fileId: string;
+  clientIp: string;
+  startTime: string;
+  endTime: string | null;
+  startByte: number;
+  bytesServed: number;
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'ERROR';
+  closeReason: string | null;
+}

@@ -22,6 +22,11 @@ service TorrentService {
 
   // Unary: get download stats for a specific file (size, progress, speed)
   rpc GetTorrentStats(GetTorrentStatsRequest) returns (GetTorrentStatsResponse);
+
+  rpc ListTorrents     (ListTorrentsRequest)      returns (ListTorrentsResponse);
+  rpc PauseTorrent     (PauseTorrentRequest)      returns (PauseTorrentResponse);
+  rpc ResumeTorrent    (ResumeTorrentRequest)     returns (ResumeTorrentResponse);
+  rpc DeleteTorrent    (DeleteTorrentRequest)     returns (DeleteTorrentResponse);
 }
 
 // ─── FileInfo ──────────────────────────────────────────────────────────────
@@ -97,3 +102,35 @@ message GetTorrentStatsRequest {
 message GetTorrentStatsResponse {
   TorrentFileStats stats = 1;
 }
+
+// ── Torrent state ─────────────────────────────────────────────
+enum TorrentState {
+  TORRENT_ACTIVE  = 0;
+  TORRENT_PAUSED  = 1;
+  TORRENT_STOPPED = 2;
+}
+
+// ── Management (F2i) ─────────────────────────────────────────
+message TorrentListItem {
+  string        torrent_id         = 1;
+  string        name               = 2;
+  TorrentStatus status             = 3;
+  TorrentState  state              = 4;
+  int64         total_size         = 5;
+  int64         downloaded_bytes   = 6;
+  double        completion_pct     = 7;
+  double        download_speed_bps = 8;
+  repeated FileInfo files          = 9;
+}
+
+message ListTorrentsRequest  {}
+message ListTorrentsResponse { repeated TorrentListItem torrents = 1; }
+
+message PauseTorrentRequest  { string info_hash = 1; }
+message PauseTorrentResponse { bool success = 1; string message = 2; }
+
+message ResumeTorrentRequest  { string info_hash = 1; }
+message ResumeTorrentResponse { bool success = 1; string message = 2; }
+
+message DeleteTorrentRequest  { string info_hash = 1; bool delete_files = 2; }
+message DeleteTorrentResponse { bool success = 1; string message = 2; }

@@ -7,7 +7,14 @@
       "Bash(py -c \"import graphify; print\\('ok'\\)\")",
       "Bash(python3 -c \"import graphify; print\\('ok'\\)\")",
       "Bash(py *)",
-      "Bash(/c/Users/barge/AppData/Local/Programs/Python/Python311/python.exe -c \"import sys; open\\('.graphify_python', 'w'\\).write\\(sys.executable\\); print\\(sys.executable\\)\")"
+      "Bash(/c/Users/barge/AppData/Local/Programs/Python/Python311/python.exe -c \"import sys; open\\('.graphify_python', 'w'\\).write\\(sys.executable\\); print\\(sys.executable\\)\")",
+      "Bash(/c/Users/barge/AppData/Local/Programs/Python/Python311/python.exe -c \"import graphify; print\\('installed'\\)\")",
+      "Bash(/c/Users/barge/AppData/Local/Programs/Python/Python311/python.exe -c \"import sys; open\\('.graphify_python', 'w'\\).write\\(sys.executable\\); print\\('saved'\\)\")",
+      "Bash(export JAVA_HOME)",
+      "Bash('/c/Program Files/JetBrains/IntelliJ IDEA Community Edition 2024.3.4.1/plugins/maven/lib/maven3/bin/mvn' test -Dtest=TorrentStatsControllerTest -q)",
+      "Bash(export JAVA_HOME=\"/c/Program Files/Java/jdk-17\")",
+      "Bash('/c/Program Files/JetBrains/IntelliJ IDEA Community Edition 2024.3.4.1/plugins/maven/lib/maven3/bin/mvn' test -Dtest=TorrentStatsControllerTest)",
+      "Bash('/c/Program Files/JetBrains/IntelliJ IDEA Community Edition 2024.3.4.1/plugins/maven/lib/maven3/bin/mvn' test -Dtest=SessionManagerTest -q)"
     ]
   },
   "enabledPlugins": {

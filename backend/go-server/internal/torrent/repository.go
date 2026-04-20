@@ -21,7 +21,14 @@ type Repository struct {
 type TorrentInfo struct {
 	torrent *lt.Torrent
 	files   map[string]*lt.File
+	Paused  bool // true when all file priorities set to None
 }
+
+// Torrent returns the underlying anacrolix torrent handle.
+func (ti *TorrentInfo) Torrent() *lt.Torrent { return ti.torrent }
+
+// Files returns a snapshot copy of the file map (safe for iteration outside lock).
+func (ti *TorrentInfo) Files() map[string]*lt.File { return ti.files }
 
 func NewRepository(client *lt.Client, metadataTimeout time.Duration) *Repository {
 	return &Repository{
@@ -108,4 +115,42 @@ func (r *Repository) Clearup() {
 		tInfo.torrent.Drop()
 		delete(r.torrents, key)
 	}
+}
+
+// GetTorrentInfo returns the full TorrentInfo for an info hash, or an error if not found.
+func (r *Repository) GetTorrentInfo(infoHash string) (*TorrentInfo, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	tInfo, exists := r.torrents[strings.ToLower(infoHash)]
+	if !exists {
+		return nil, fmt.Errorf("torrent not found: %s", infoHash)
+	}
+	return tInfo, nil
+}
+
+// ListTorrents returns a snapshot of all tracked torrents.
+func (r *Repository) ListTorrents() []*TorrentInfo {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	result := make([]*TorrentInfo, 0, len(r.torrents))
+	for _, info := range r.torrents {
+		result = append(result, info)
+	}
+	return result
+}
+
+// SetPaused updates the Paused flag for a torrent.
+func (r *Repository) SetPaused(infoHash string, paused bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if info, ok := r.torrents[strings.ToLower(infoHash)]; ok {
+		info.Paused = paused
+	}
+}
+
+// Remove drops tracking of a torrent (does NOT call Drop on the torrent itself).
+func (r *Repository) Remove(infoHash string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	delete(r.torrents, strings.ToLower(infoHash))
 }

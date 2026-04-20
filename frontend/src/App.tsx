@@ -4,6 +4,7 @@ import { srtToVtt, readFileAsText } from './lib/utils';
 import SubtitlePanel from './components/SubtitlePanel';
 import StatusPanel from './components/StatusPanel';
 import VideoPlayer from './components/VideoPlayer';
+import { TorrentsPage } from './components/TorrentsPage';
 
 const MIME_LABELS: Record<string, string> = {
   'video/mp4': 'MP4',
@@ -38,6 +39,7 @@ export default function App() {
   // Subtitle state
   const [showSubPanel, setShowSubPanel] = useState(false);
   const [showStatusPanel, setShowStatusPanel] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [subFontSize, setSubFontSize] = useState(100);
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([]);
   const blobUrls = useRef<Record<string, string>>({});
@@ -173,7 +175,17 @@ export default function App() {
       <header className="header">
         <span className="header-logo">▶ MagnetPlay</span>
         <span className="header-title">MagnetPlay Video Player</span>
+        <button
+          className="btn btn-ghost"
+          onClick={() => setShowDashboard(true)}
+          style={{ marginLeft: 'auto', fontSize: 13 }}
+          title="Open torrent dashboard"
+        >
+          ☰ Dashboard
+        </button>
       </header>
+
+      {showDashboard && <TorrentsPage onClose={() => setShowDashboard(false)} />}
 
       {/* ── Wizard card ── */}
       <div className="wizard-viewport card" style={{ position: 'relative' }}>

@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"mime"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -267,6 +268,91 @@ func (s *TorrentService) GetTorrentStats(ctx context.Context, req *pb.GetTorrent
 			CompletionPct:    pct,
 		},
 	}, nil
+}
+
+func (s *TorrentService) ListTorrents(ctx context.Context, req *pb.ListTorrentsRequest) (*pb.ListTorrentsResponse, error) {
+	all := s.repo.ListTorrents()
+	items := make([]*pb.TorrentListItem, 0, len(all))
+	for _, info := range all {
+		t := info.Torrent()
+		var totalSize, downloaded int64
+		var files []*pb.FileInfo
+		for id, f := range info.Files() {
+			totalSize += f.Length()
+			downloaded += f.BytesCompleted()
+			files = append(files, &pb.FileInfo{Id: id, Name: f.Path(), Size: f.Length()})
+		}
+		var pct float64
+		if totalSize > 0 {
+			pct = float64(downloaded) / float64(totalSize) * 100
+		}
+		state := pb.TorrentState_TORRENT_ACTIVE
+		if info.Paused {
+			state = pb.TorrentState_TORRENT_PAUSED
+		}
+		items = append(items, &pb.TorrentListItem{
+			TorrentId:        t.InfoHash().HexString(),
+			Name:             t.Name(),
+			State:            state,
+			TotalSize:        totalSize,
+			DownloadedBytes:  downloaded,
+			CompletionPct:    pct,
+			DownloadSpeedBps: 0,
+			Files:            files,
+		})
+	}
+	return &pb.ListTorrentsResponse{Torrents: items}, nil
+}
+
+func (s *TorrentService) PauseTorrent(ctx context.Context, req *pb.PauseTorrentRequest) (*pb.PauseTorrentResponse, error) {
+	info, err := s.repo.GetTorrentInfo(req.GetInfoHash())
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "torrent not found: %s", req.GetInfoHash())
+	}
+	if info.Paused {
+		return &pb.PauseTorrentResponse{Success: true, Message: "already paused"}, nil
+	}
+	for _, f := range info.Files() {
+		f.SetPriority(lt.PiecePriorityNone)
+	}
+	// Drop all peer connections — SetPriority alone doesn't stop in-flight downloads.
+	// Peers keep pushing pieces they've already been asked for until disconnected.
+	info.Torrent().SetMaxEstablishedConns(0)
+	s.repo.SetPaused(req.GetInfoHash(), true)
+	return &pb.PauseTorrentResponse{Success: true, Message: "paused"}, nil
+}
+
+func (s *TorrentService) ResumeTorrent(ctx context.Context, req *pb.ResumeTorrentRequest) (*pb.ResumeTorrentResponse, error) {
+	info, err := s.repo.GetTorrentInfo(req.GetInfoHash())
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "torrent not found: %s", req.GetInfoHash())
+	}
+	if !info.Paused {
+		return &pb.ResumeTorrentResponse{Success: true, Message: "already active"}, nil
+	}
+	// Restore peer connections before re-enabling piece downloads.
+	info.Torrent().SetMaxEstablishedConns(80)
+	for _, f := range info.Files() {
+		f.Download()
+	}
+	s.repo.SetPaused(req.GetInfoHash(), false)
+	return &pb.ResumeTorrentResponse{Success: true, Message: "resumed"}, nil
+}
+
+func (s *TorrentService) DeleteTorrent(ctx context.Context, req *pb.DeleteTorrentRequest) (*pb.DeleteTorrentResponse, error) {
+	info, err := s.repo.GetTorrentInfo(req.GetInfoHash())
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "torrent not found: %s", req.GetInfoHash())
+	}
+	info.Torrent().Drop()
+	s.repo.Remove(req.GetInfoHash())
+	if req.GetDeleteFiles() {
+		dataDir := filepath.Join(".", "downloads", req.GetInfoHash())
+		if removeErr := os.RemoveAll(dataDir); removeErr != nil {
+			return &pb.DeleteTorrentResponse{Success: false, Message: removeErr.Error()}, nil
+		}
+	}
+	return &pb.DeleteTorrentResponse{Success: true, Message: "deleted"}, nil
 }
 
 func prioritize(t *lt.Torrent, f *lt.File, start, end int64) {

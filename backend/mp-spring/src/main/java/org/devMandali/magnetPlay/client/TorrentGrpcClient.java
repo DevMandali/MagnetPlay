@@ -9,6 +9,14 @@ import org.devMandali.magnetPlay.FileInfoRequest;
 import org.devMandali.magnetPlay.FileInfoResponse;
 import org.devMandali.magnetPlay.GetTorrentStatsRequest;
 import org.devMandali.magnetPlay.GetTorrentStatsResponse;
+import org.devMandali.magnetPlay.ListTorrentsRequest;
+import org.devMandali.magnetPlay.ListTorrentsResponse;
+import org.devMandali.magnetPlay.PauseTorrentRequest;
+import org.devMandali.magnetPlay.PauseTorrentResponse;
+import org.devMandali.magnetPlay.ResumeTorrentRequest;
+import org.devMandali.magnetPlay.ResumeTorrentResponse;
+import org.devMandali.magnetPlay.DeleteTorrentRequest;
+import org.devMandali.magnetPlay.DeleteTorrentResponse;
 import org.devMandali.magnetPlay.StreamRequest;
 import org.devMandali.magnetPlay.TorrentRequest;
 import org.devMandali.magnetPlay.TorrentResponse;
@@ -81,6 +89,51 @@ public class TorrentGrpcClient {
                         .build()))
                 .subscribeOn(grpcScheduler)
                 .doOnError(e -> logger.error("getTorrentStats gRPC error for {}/{}", infoHash, fileId, e));
+    }
+
+    // ─── ListTorrents ────────────────────────────────────────────────────────
+
+    public Mono<ListTorrentsResponse> listTorrents() {
+        return Mono.fromCallable(() -> torrentServiceBlockingStub
+                .withDeadlineAfter(10, TimeUnit.SECONDS)
+                .listTorrents(ListTorrentsRequest.newBuilder().build()))
+                .subscribeOn(grpcScheduler)
+                .doOnError(e -> logger.error("listTorrents gRPC error", e));
+    }
+
+    // ─── PauseTorrent ────────────────────────────────────────────────────────
+
+    public Mono<PauseTorrentResponse> pauseTorrent(String infoHash) {
+        return Mono.fromCallable(() -> torrentServiceBlockingStub
+                .withDeadlineAfter(10, TimeUnit.SECONDS)
+                .pauseTorrent(PauseTorrentRequest.newBuilder()
+                        .setInfoHash(infoHash).build()))
+                .subscribeOn(grpcScheduler)
+                .doOnError(e -> logger.error("pauseTorrent gRPC error for {}", infoHash, e));
+    }
+
+    // ─── ResumeTorrent ───────────────────────────────────────────────────────
+
+    public Mono<ResumeTorrentResponse> resumeTorrent(String infoHash) {
+        return Mono.fromCallable(() -> torrentServiceBlockingStub
+                .withDeadlineAfter(10, TimeUnit.SECONDS)
+                .resumeTorrent(ResumeTorrentRequest.newBuilder()
+                        .setInfoHash(infoHash).build()))
+                .subscribeOn(grpcScheduler)
+                .doOnError(e -> logger.error("resumeTorrent gRPC error for {}", infoHash, e));
+    }
+
+    // ─── DeleteTorrent ───────────────────────────────────────────────────────
+
+    public Mono<DeleteTorrentResponse> deleteTorrent(String infoHash, boolean deleteFiles) {
+        return Mono.fromCallable(() -> torrentServiceBlockingStub
+                .withDeadlineAfter(10, TimeUnit.SECONDS)
+                .deleteTorrent(DeleteTorrentRequest.newBuilder()
+                        .setInfoHash(infoHash)
+                        .setDeleteFiles(deleteFiles)
+                        .build()))
+                .subscribeOn(grpcScheduler)
+                .doOnError(e -> logger.error("deleteTorrent gRPC error for {}", infoHash, e));
     }
 
     // ─── StreamFile ──────────────────────────────────────────────────────────

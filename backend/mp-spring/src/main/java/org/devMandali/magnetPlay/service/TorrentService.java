@@ -11,6 +11,7 @@ import org.devMandali.magnetPlay.TorrentResponse;
 import org.devMandali.magnetPlay.client.TorrentGrpcClient;
 import org.devMandali.magnetPlay.model.TorrentAddRequest;
 import org.devMandali.magnetPlay.model.TorrentAddResponse;
+import org.devMandali.magnetPlay.model.TorrentListResponse;
 import org.devMandali.magnetPlay.model.TorrentStatsResponse;
 import org.devMandali.magnetPlay.util.ByteUtil;
 import org.slf4j.Logger;
@@ -92,6 +93,42 @@ public class TorrentService {
                     );
                 })
                 .doOnError(e -> logger.error("getTorrentStats error for {}/{}", infoHash, fileId, e));
+    }
+
+    public Mono<TorrentListResponse> listTorrents() {
+        return grpcClient.listTorrents()
+                .map(r -> {
+                    var items = r.getTorrentsList().stream().map(t ->
+                        new TorrentListResponse.TorrentListItem(
+                            t.getTorrentId(), t.getName(), t.getState().name(),
+                            t.getTotalSize(), t.getDownloadedBytes(),
+                            t.getCompletionPct(), t.getDownloadSpeedBps(),
+                            t.getFilesList().stream().map(f ->
+                                new TorrentListResponse.FileItem(f.getId(), f.getName(), f.getSize())
+                            ).toList()
+                        )
+                    ).toList();
+                    return new TorrentListResponse(items);
+                })
+                .doOnError(e -> logger.error("listTorrents error", e));
+    }
+
+    public Mono<String> pauseTorrent(String infoHash) {
+        return grpcClient.pauseTorrent(infoHash)
+                .map(r -> r.getMessage())
+                .doOnError(e -> logger.error("pauseTorrent error for {}", infoHash, e));
+    }
+
+    public Mono<String> resumeTorrent(String infoHash) {
+        return grpcClient.resumeTorrent(infoHash)
+                .map(r -> r.getMessage())
+                .doOnError(e -> logger.error("resumeTorrent error for {}", infoHash, e));
+    }
+
+    public Mono<String> deleteTorrent(String infoHash, boolean deleteFiles) {
+        return grpcClient.deleteTorrent(infoHash, deleteFiles)
+                .map(r -> r.getMessage())
+                .doOnError(e -> logger.error("deleteTorrent error for {}", infoHash, e));
     }
 
     public Flux<FileChunk> streamFile(String infoHash, String fileId, long startByte, long endByte) {

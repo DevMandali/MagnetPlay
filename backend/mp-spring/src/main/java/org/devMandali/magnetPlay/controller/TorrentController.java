@@ -8,10 +8,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.devMandali.magnetPlay.FileInfoResponse;
+import org.devMandali.magnetPlay.model.SessionResponse;
 import org.devMandali.magnetPlay.model.TorrentAddRequest;
 import org.devMandali.magnetPlay.model.TorrentAddResponse;
+import org.devMandali.magnetPlay.model.TorrentListResponse;
 import org.devMandali.magnetPlay.model.TorrentStatsResponse;
 import org.devMandali.magnetPlay.service.TorrentService;
+import org.devMandali.magnetPlay.session.SessionManager;
+import org.devMandali.magnetPlay.session.StreamingSession;
 import org.devMandali.magnetPlay.util.TorrentUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +39,11 @@ public class TorrentController {
     private final Logger logger = LoggerFactory.getLogger(TorrentController.class);
     private final DataBufferFactory bufferFactory = new DefaultDataBufferFactory();
     private final TorrentService service;
+    private final SessionManager sessionManager;
 
-    public TorrentController(TorrentService service) {
+    public TorrentController(TorrentService service, SessionManager sessionManager) {
         this.service = service;
+        this.sessionManager = sessionManager;
     }
 
     @Operation(summary = "Add Torrent URL")
@@ -79,6 +85,40 @@ public class TorrentController {
         return service.getTorrentStats(infoHash, fileId)
                 .map(ResponseEntity::ok)
                 .onErrorReturn(ResponseEntity.notFound().<TorrentStatsResponse>build());
+    }
+
+    @GetMapping("/list")
+    public Mono<ResponseEntity<TorrentListResponse>> listTorrents() {
+        return service.listTorrents().map(ResponseEntity::ok);
+    }
+
+    @PostMapping("/pause/{infoHash}")
+    public Mono<ResponseEntity<String>> pause(@PathVariable String infoHash) {
+        return service.pauseTorrent(infoHash).map(ResponseEntity::ok);
+    }
+
+    @PostMapping("/resume/{infoHash}")
+    public Mono<ResponseEntity<String>> resume(@PathVariable String infoHash) {
+        return service.resumeTorrent(infoHash).map(ResponseEntity::ok);
+    }
+
+    @DeleteMapping("/{infoHash}")
+    public Mono<ResponseEntity<String>> delete(
+            @PathVariable String infoHash,
+            @RequestParam(defaultValue = "false") boolean deleteFiles) {
+        return service.deleteTorrent(infoHash, deleteFiles).map(ResponseEntity::ok);
+    }
+
+    @GetMapping("/sessions")
+    public Mono<ResponseEntity<SessionResponse>> getSessions(
+            @RequestParam(defaultValue = "false") boolean activeOnly) {
+        var sessions = activeOnly ? sessionManager.listActive() : sessionManager.listAll();
+        var items = sessions.stream().map(s -> new SessionResponse.SessionItem(
+            s.sessionId(), s.infoHash(), s.fileId(), s.clientIp(),
+            s.startTime(), s.endTime(), s.startByte(), s.bytesServed().get(),
+            s.status().name(), s.closeReason() != null ? s.closeReason().name() : null
+        )).toList();
+        return Mono.just(ResponseEntity.ok(new SessionResponse(items)));
     }
 
     @GetMapping("/stream/{infoHash}")
@@ -131,6 +171,12 @@ public class TorrentController {
 
         long contentLength = endByte - startByte + 1;
 
+        // ── Open streaming session for tracking ───────────────────────────
+        String clientIp = extractClientIp(request);
+        String userAgent = request.getHeaders().getFirst("User-Agent");
+        if (userAgent == null) userAgent = "unknown";
+        StreamingSession session = sessionManager.openSession(infoHash, fileId, clientIp, userAgent, startByte);
+
         // ── Build gRPC stream → DataBuffer Flux ───────────────────────────
         //
         // endByte in our gRPC contract is exclusive, but HTTP Range is inclusive.
@@ -145,9 +191,19 @@ public class TorrentController {
                     buffer.write(bytes);
                     return buffer;
                 })
-                .doOnComplete(() -> logger.debug("stream complete: {}/{} bytes={}-{}", infoHash, fileId, startByte, endByte))
-                .doOnCancel(() -> logger.debug("stream cancelled: {}/{} at startByte={}", infoHash, fileId, startByte))
-                .doOnError(e -> logger.error("stream error: {}/{}", infoHash, fileId, e));
+                .doOnNext(buffer -> session.bytesServed().addAndGet(buffer.readableByteCount()))
+                .doOnComplete(() -> {
+                    logger.debug("stream complete: {}/{} bytes={}-{}", infoHash, fileId, startByte, endByte);
+                    sessionManager.closeSession(session.sessionId(), StreamingSession.CloseReason.COMPLETED);
+                })
+                .doOnCancel(() -> {
+                    logger.debug("stream cancelled: {}/{} at startByte={}", infoHash, fileId, startByte);
+                    sessionManager.closeSession(session.sessionId(), StreamingSession.CloseReason.CANCELLED);
+                })
+                .doOnError(e -> {
+                    logger.error("stream error: {}/{}", infoHash, fileId, e);
+                    sessionManager.closeSession(session.sessionId(), StreamingSession.CloseReason.ERROR);
+                });
 
         // ── Build HTTP response ────────────────────────────────────────────
         //
@@ -165,5 +221,12 @@ public class TorrentController {
                 .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store")
                 .body(dataStream);
 
+    }
+
+    private String extractClientIp(org.springframework.http.server.reactive.ServerHttpRequest request) {
+        String forwarded = request.getHeaders().getFirst("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
+        var addr = request.getRemoteAddress();
+        return addr != null ? addr.getAddress().getHostAddress() : "unknown";
     }
 }

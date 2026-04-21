@@ -16,8 +16,11 @@ function fmtSpeed(bps: number): string {
 
 const STATS_SVG = `
   <svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-    <path d="M12 16l-5-5h3V5h4v6h3z" fill="white"/>
-    <rect x="5" y="18" width="14" height="2" rx="1" fill="white"/>
+    <circle cx="12" cy="12" r="9" stroke="white" stroke-width="1.8" fill="none"/>
+    <ellipse cx="12" cy="12" rx="3.5" ry="9" stroke="white" stroke-width="1.5" fill="none"/>
+    <line x1="3" y1="12" x2="21" y2="12" stroke="white" stroke-width="1.5"/>
+    <line x1="5" y1="7.5" x2="19" y2="7.5" stroke="white" stroke-width="1.3"/>
+    <line x1="5" y1="16.5" x2="19" y2="16.5" stroke="white" stroke-width="1.3"/>
   </svg>`;
 
 // ── registerStatsButton ───────────────────────────────────────────────────────
@@ -82,6 +85,7 @@ export function registerStatsButton(): void {
         const s = await res.json() as {
           totalSize: number; downloadedBytes: number;
           completionPct: number; downloadSpeedBps: number;
+          seeders: number; peers: number; trackers: number;
         };
         const pct      = Math.min(Math.max(s.completionPct, 0), 100);
         const complete = pct >= 99.9;
@@ -96,6 +100,12 @@ export function registerStatsButton(): void {
             <span class="vsp-val${complete ? ' ok' : ' accent'}">${pct.toFixed(1)}%</span>
             <span class="vsp-key">Speed</span>
             <span class="vsp-val">${complete ? '— seeding' : fmtSpeed(s.downloadSpeedBps)}</span>
+            <span class="vsp-key">Seeders</span>
+            <span class="vsp-val">${s.seeders ?? 0}</span>
+            <span class="vsp-key">Peers</span>
+            <span class="vsp-val">${s.peers ?? 0}</span>
+            <span class="vsp-key">Trackers</span>
+            <span class="vsp-val">${s.trackers ?? 0}</span>
           </div>
           <div class="vsp-bar">
             <div class="vsp-fill${complete ? ' complete' : ''}" style="width:${pct}%"></div>

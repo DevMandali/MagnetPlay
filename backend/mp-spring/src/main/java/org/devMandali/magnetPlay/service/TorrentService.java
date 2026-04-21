@@ -89,7 +89,10 @@ public class TorrentService {
                             s.getTotalSize(),
                             s.getDownloadedBytes(),
                             s.getCompletionPct(),
-                            s.getDownloadSpeedBps()
+                            s.getDownloadSpeedBps(),
+                            s.getSeeders(),
+                            s.getPeers(),
+                            s.getTrackers()
                     );
                 })
                 .doOnError(e -> logger.error("getTorrentStats error for {}/{}", infoHash, fileId, e));

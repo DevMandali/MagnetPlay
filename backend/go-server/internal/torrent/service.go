@@ -242,6 +242,11 @@ func (s *TorrentService) GetTorrentStats(ctx context.Context, req *pb.GetTorrent
 		return nil, status.Errorf(codes.NotFound, "file not found: %s/%s", req.GetInfoHash(), req.GetFileId())
 	}
 
+	t, ok := s.repo.GetTorrent(req.GetInfoHash())
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "torrent not found: %s", req.GetInfoHash())
+	}
+
 	downloaded := f.BytesCompleted()
 	total := f.Length()
 	var pct float64
@@ -259,6 +264,13 @@ func (s *TorrentService) GetTorrentStats(ctx context.Context, req *pb.GetTorrent
 	s.trackerMu.Unlock()
 	tr.Record(downloaded, time.Now())
 
+	ts := t.Stats()
+	mi := t.Metainfo()
+	trackerCount := 0
+	for _, tier := range mi.AnnounceList {
+		trackerCount += len(tier)
+	}
+
 	return &pb.GetTorrentStatsResponse{
 		Stats: &pb.TorrentFileStats{
 			FileId:           req.GetFileId(),
@@ -266,6 +278,9 @@ func (s *TorrentService) GetTorrentStats(ctx context.Context, req *pb.GetTorrent
 			DownloadedBytes:  downloaded,
 			DownloadSpeedBps: tr.SpeedBps(),
 			CompletionPct:    pct,
+			Seeders:          int32(ts.ConnectedSeeders),
+			Peers:            int32(ts.ActivePeers),
+			Trackers:         int32(trackerCount),
 		},
 	}, nil
 }

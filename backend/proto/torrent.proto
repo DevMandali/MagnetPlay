@@ -92,6 +92,9 @@ message TorrentFileStats {
   int64  downloaded_bytes   = 3;
   double download_speed_bps = 4;  // rolling 5-second average, bytes/sec
   double completion_pct     = 5;
+  int32  seeders            = 6;  // connected seeders
+  int32  peers              = 7;  // active peers
+  int32  trackers           = 8;  // total configured trackers
 }
 
 message GetTorrentStatsRequest {

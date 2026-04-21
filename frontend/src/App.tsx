@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { TorrentFile, ActivePlayer, SubtitleTrack, MoovStatus, FetchState } from './types';
+import { TorrentFile, ActivePlayer, SubtitleTrack, MoovStatus, FetchState, TorrentFileStats } from './types';
 import { srtToVtt, readFileAsText } from './lib/utils';
 import SubtitlePanel from './components/SubtitlePanel';
 import StatusPanel from './components/StatusPanel';
@@ -40,6 +40,8 @@ export default function App() {
   const [showSubPanel, setShowSubPanel] = useState(false);
   const [showStatusPanel, setShowStatusPanel] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [configCollapsed, setConfigCollapsed] = useState(false);
+  const [peerStats, setPeerStats] = useState<Pick<TorrentFileStats, 'seeders' | 'peers' | 'trackers'> | null>(null);
   const [subFontSize, setSubFontSize] = useState(100);
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([]);
   const blobUrls = useRef<Record<string, string>>({});
@@ -114,6 +116,7 @@ export default function App() {
     setTorrentFiles([]);
     setInfoHash('');
     setDraft({ infoHash: '', fileId: '', mimeType: 'video/mp4' });
+    setConfigCollapsed(false);
   };
 
   const handleFetchFiles = async () => {
@@ -158,11 +161,28 @@ export default function App() {
     setMoovStatus('idle');
     setActive({ ...draft });
     setSubtitleTracks([]);
+    setConfigCollapsed(true);
   };
 
   const handleError = useCallback((err: { code: number; message: string } | null) => {
     setError(err ? `[${err.code}] ${err.message}` : 'Unknown playback error');
   }, []);
+
+  useEffect(() => {
+    if (!active) { setPeerStats(null); return; }
+    const poll = async () => {
+      try {
+        const res = await fetch(`/v1/torrent/stats/${active.infoHash}?fileId=${encodeURIComponent(active.fileId)}`);
+        if (res.ok) {
+          const data: TorrentFileStats = await res.json();
+          setPeerStats({ seeders: data.seeders ?? 0, peers: data.peers ?? 0, trackers: data.trackers ?? 0 });
+        }
+      } catch { /* ignore */ }
+    };
+    poll();
+    const id = setInterval(poll, 5000);
+    return () => clearInterval(id);
+  }, [active]);
 
   const moovBadge = MOOV_BADGE[moovStatus] ?? null;
   const streamUrlPreview = active
@@ -197,24 +217,35 @@ export default function App() {
           </div>
         )}
 
-        <div className="card-header">
+        <div
+          className="card-header"
+          style={step === 2 ? { cursor: 'pointer' } : undefined}
+          onClick={step === 2 ? () => setConfigCollapsed(v => !v) : undefined}
+        >
           <span className="dot dot-red" />
           <span className="dot dot-amber" />
           <span className="dot dot-green" />
           <span className="card-label">Stream Config</span>
+          {step === 2 && (
+            <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--muted)', userSelect: 'none' }}>
+              {configCollapsed ? '▼ expand' : '▲ collapse'}
+            </span>
+          )}
         </div>
 
-        <div className="wizard-steps">
-          <div className={`wizard-step-pill ${step === 1 ? 'active' : 'done'}`}>
-            <div className="wizard-step-num">{step > 1 ? '✓' : '1'}</div>
-            Magnet Link
+        {!configCollapsed && (
+          <>
+          <div className="wizard-steps">
+            <div className={`wizard-step-pill ${step === 1 ? 'active' : 'done'}`}>
+              <div className="wizard-step-num">{step > 1 ? '✓' : '1'}</div>
+              Magnet Link
+            </div>
+            <div className={`wizard-sep ${step > 1 ? 'done' : ''}`} />
+            <div className={`wizard-step-pill ${step === 2 ? 'active' : ''}`}>
+              <div className="wizard-step-num">2</div>
+              Select File
+            </div>
           </div>
-          <div className={`wizard-sep ${step > 1 ? 'done' : ''}`} />
-          <div className={`wizard-step-pill ${step === 2 ? 'active' : ''}`}>
-            <div className="wizard-step-num">2</div>
-            Select File
-          </div>
-        </div>
 
         <div className={`wizard-track step-${step}`}>
           {/* Step 1 */}
@@ -251,6 +282,27 @@ export default function App() {
               >
                 ▶ Fetch Files
               </button>
+              <button
+                className="btn btn-ghost"
+                onClick={async () => {
+                  try {
+                    const text = await navigator.clipboard.readText();
+                    if (text) { setMagnetLink(text); setFetchState('idle'); setFetchError(null); }
+                  } catch { /* clipboard permission denied */ }
+                }}
+                title="Paste from clipboard"
+              >
+                ⎘ Paste
+              </button>
+              {magnetLink && (
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => { setMagnetLink(''); setFetchState('idle'); setFetchError(null); }}
+                  title="Clear"
+                >
+                  ✕ Clear
+                </button>
+              )}
             </div>
           </div>
 
@@ -302,6 +354,8 @@ export default function App() {
             {error && <div className="error-box"><span>⚠</span>{error}</div>}
           </div>
         </div>
+          </>
+        )}
       </div>
 
       {/* ── Player ── */}
@@ -318,12 +372,26 @@ export default function App() {
                 </span>
               )}
               <span className="badge badge-mime">{MIME_LABELS[active.mimeType] ?? active.mimeType}</span>
+              {peerStats !== null && (
+                <span
+                  className={`badge ${peerStats.seeders > 0 ? 'badge-ok' : 'badge-muted'}`}
+                  title={`${peerStats.peers} active peers · ${peerStats.trackers} trackers`}
+                >
+                  ⇅ {peerStats.seeders}
+                </span>
+              )}
               <button
                 className={`stat-toggle-btn${showStatusPanel ? ' active' : ''}`}
                 onClick={() => setShowStatusPanel(v => !v)}
                 title="Download status"
               >
-                DL
+                <svg viewBox="0 0 24 24" width="13" height="13" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ display: 'block' }}>
+                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" fill="none"/>
+                  <ellipse cx="12" cy="12" rx="3.5" ry="9" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                  <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="1.5"/>
+                  <line x1="5" y1="7.5" x2="19" y2="7.5" stroke="currentColor" strokeWidth="1.3"/>
+                  <line x1="5" y1="16.5" x2="19" y2="16.5" stroke="currentColor" strokeWidth="1.3"/>
+                </svg>
               </button>
               <button
                 className={`cc-toggle-btn${showSubPanel ? ' active' : ''}`}

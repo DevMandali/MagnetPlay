@@ -85,6 +85,17 @@ export default function StatusPanel({ infoHash, fileId }: StatusPanelProps) {
               <span className="status-stat-val">
                 {complete ? '— seeding' : fmtSpeed(stats.downloadSpeedBps)}
               </span>
+
+              <span className="status-stat-key">Seeders</span>
+              <span className={`status-stat-val${(stats.seeders ?? 0) > 0 ? ' ok' : ''}`}>
+                {stats.seeders ?? 0}
+              </span>
+
+              <span className="status-stat-key">Peers</span>
+              <span className="status-stat-val">{stats.peers ?? 0}</span>
+
+              <span className="status-stat-key">Trackers</span>
+              <span className="status-stat-val">{stats.trackers ?? 0}</span>
             </div>
 
             <div className="status-progress-bar">

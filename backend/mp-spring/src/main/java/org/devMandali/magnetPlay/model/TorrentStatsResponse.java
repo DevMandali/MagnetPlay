@@ -5,5 +5,8 @@ public record TorrentStatsResponse(
         long   totalSize,
         long   downloadedBytes,
         double completionPct,
-        double downloadSpeedBps
+        double downloadSpeedBps,
+        int    seeders,
+        int    peers,
+        int    trackers
 ) {}

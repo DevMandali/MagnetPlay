@@ -28,6 +28,9 @@ export interface TorrentFileStats {
   downloadedBytes: number;
   completionPct: number;
   downloadSpeedBps: number;
+  seeders: number;
+  peers: number;
+  trackers: number;
 }
 
 export interface TorrentListItem {

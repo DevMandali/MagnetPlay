@@ -57,7 +57,7 @@ public class CorsConfig {
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/v1/torrent/**", config);
+        source.registerCorsConfiguration("/v1/**", config);
 
         return new CorsWebFilter(source);
     }

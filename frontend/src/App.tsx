@@ -5,6 +5,7 @@ import SubtitlePanel from './components/SubtitlePanel';
 import StatusPanel from './components/StatusPanel';
 import VideoPlayer from './components/VideoPlayer';
 import { TorrentsPage } from './components/TorrentsPage';
+import SearchPanel from './components/SearchPanel';
 
 const MIME_LABELS: Record<string, string> = {
   'video/mp4': 'MP4',
@@ -41,6 +42,7 @@ export default function App() {
   const [showStatusPanel, setShowStatusPanel] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [configCollapsed, setConfigCollapsed] = useState(false);
+  const [inputMode, setInputMode] = useState<'magnet' | 'search'>('magnet');
   const [peerStats, setPeerStats] = useState<Pick<TorrentFileStats, 'seeders' | 'peers' | 'trackers'> | null>(null);
   const [subFontSize, setSubFontSize] = useState(100);
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([]);
@@ -117,6 +119,7 @@ export default function App() {
     setInfoHash('');
     setDraft({ infoHash: '', fileId: '', mimeType: 'video/mp4' });
     setConfigCollapsed(false);
+    setInputMode('magnet');
   };
 
   const handleFetchFiles = async () => {
@@ -250,60 +253,97 @@ export default function App() {
         <div className={`wizard-track step-${step}`}>
           {/* Step 1 */}
           <div className="wizard-panel">
-            <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
-              <div className="form-group full">
-                <label htmlFor="magnetLink">Magnet Link</label>
-                <input
-                  id="magnetLink"
-                  type="text"
-                  placeholder="magnet:?xt=urn:btih:…"
-                  value={magnetLink}
-                  onChange={e => { setMagnetLink(e.target.value); setFetchState('idle'); setFetchError(null); }}
-                  onKeyDown={e => e.key === 'Enter' && handleFetchFiles()}
-                  style={{ fontFamily: 'var(--mono)', fontSize: 11 }}
-                />
-                {fetchState === 'error' && (
-                  <div style={{
-                    marginTop: 6, padding: '8px 12px',
-                    background: 'rgba(230,57,70,.1)', border: '1px solid rgba(230,57,70,.3)',
-                    borderRadius: 6, fontFamily: 'var(--mono)', fontSize: 10,
-                    color: '#ff8080', display: 'flex', alignItems: 'center', gap: 8,
-                  }}>
-                    <span>⚠</span>{fetchError}
-                  </div>
-                )}
-              </div>
+            {/* Tab bar */}
+            <div style={{ display: 'flex', marginBottom: 12, borderBottom: '1px solid var(--border)' }}>
+              {(['magnet', 'search'] as const).map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setInputMode(mode)}
+                  style={{
+                    padding: '6px 16px',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: inputMode === mode ? '2px solid var(--accent, #818cf8)' : '2px solid transparent',
+                    color: inputMode === mode ? 'var(--text)' : 'var(--muted)',
+                    cursor: 'pointer',
+                    fontSize: 12,
+                    fontFamily: 'var(--mono)',
+                    marginBottom: -1,
+                  }}
+                >
+                  {mode === 'magnet' ? '⎘ Paste Magnet' : '⌕ Search'}
+                </button>
+              ))}
             </div>
-            <div className="form-actions">
-              <button
-                className="btn btn-primary"
-                onClick={handleFetchFiles}
-                disabled={!magnetLink.trim() || fetchState === 'loading'}
-              >
-                ▶ Fetch Files
-              </button>
-              <button
-                className="btn btn-ghost"
-                onClick={async () => {
-                  try {
-                    const text = await navigator.clipboard.readText();
-                    if (text) { setMagnetLink(text); setFetchState('idle'); setFetchError(null); }
-                  } catch { /* clipboard permission denied */ }
+
+            {inputMode === 'search' ? (
+              <SearchPanel
+                onSelect={(mag) => {
+                  setMagnetLink(mag);
+                  setFetchState('idle');
+                  setFetchError(null);
+                  setInputMode('magnet');
                 }}
-                title="Paste from clipboard"
-              >
-                ⎘ Paste
-              </button>
-              {magnetLink && (
+              />
+            ) : (
+              <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
+                <div className="form-group full">
+                  <label htmlFor="magnetLink">Magnet Link</label>
+                  <input
+                    id="magnetLink"
+                    type="text"
+                    placeholder="magnet:?xt=urn:btih:…"
+                    value={magnetLink}
+                    onChange={e => { setMagnetLink(e.target.value); setFetchState('idle'); setFetchError(null); }}
+                    onKeyDown={e => e.key === 'Enter' && handleFetchFiles()}
+                    style={{ fontFamily: 'var(--mono)', fontSize: 11 }}
+                  />
+                  {fetchState === 'error' && (
+                    <div style={{
+                      marginTop: 6, padding: '8px 12px',
+                      background: 'rgba(230,57,70,.1)', border: '1px solid rgba(230,57,70,.3)',
+                      borderRadius: 6, fontFamily: 'var(--mono)', fontSize: 10,
+                      color: '#ff8080', display: 'flex', alignItems: 'center', gap: 8,
+                    }}>
+                      <span>⚠</span>{fetchError}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {inputMode === 'magnet' && (
+              <div className="form-actions">
+                <button
+                  className="btn btn-primary"
+                  onClick={handleFetchFiles}
+                  disabled={!magnetLink.trim() || fetchState === 'loading'}
+                >
+                  ▶ Fetch Files
+                </button>
                 <button
                   className="btn btn-ghost"
-                  onClick={() => { setMagnetLink(''); setFetchState('idle'); setFetchError(null); }}
-                  title="Clear"
+                  onClick={async () => {
+                    try {
+                      const text = await navigator.clipboard.readText();
+                      if (text) { setMagnetLink(text); setFetchState('idle'); setFetchError(null); }
+                    } catch { /* clipboard permission denied */ }
+                  }}
+                  title="Paste from clipboard"
                 >
-                  ✕ Clear
+                  ⎘ Paste
                 </button>
-              )}
-            </div>
+                {magnetLink && (
+                  <button
+                    className="btn btn-ghost"
+                    onClick={() => { setMagnetLink(''); setFetchState('idle'); setFetchError(null); }}
+                    title="Clear"
+                  >
+                    ✕ Clear
+                  </button>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Step 2 */}

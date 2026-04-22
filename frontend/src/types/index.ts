@@ -56,3 +56,19 @@ export interface StreamingSession {
   status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED' | 'ERROR';
   closeReason: string | null;
 }
+
+export interface SearchResult {
+  title: string;
+  sizeBytes: number;
+  seeders: number;
+  peers: number;
+  indexer: string;
+  pubDate: string;
+  magnetUrl: string;
+  qualityTags: string[];
+}
+
+export interface SearchResultsResponse {
+  results: SearchResult[];
+  total: number;
+}

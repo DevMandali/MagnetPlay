@@ -30,3 +30,8 @@ logging:
     io.grpc: WARN
     reactor.netty: WARN
 
+# ── Prowlarr search ───────────────────────────────────────────────────────────
+prowlarr:
+  url: ${PROWLARR_URL:http://localhost:9696}
+  api-key: ${PROWLARR_API_KEY:}
+  config-xml: ${PROWLARR_CONFIG_XML:../go-server/prowlarr-data/config.xml}

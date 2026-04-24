@@ -1,38 +1,70 @@
-# Graphify & Environment
+# ── Graphify output ──────────────────────────────────────────────────────────
 graphify-out/
-.venv/
+
+# ── Version control ──────────────────────────────────────────────────────────
 .git/
 
-# Spring Boot / Java
+# ── Python env ───────────────────────────────────────────────────────────────
+.venv/
+
+# ── Build artifacts ──────────────────────────────────────────────────────────
 target/
 build/
 .gradle/
 .m2/
-.settings/
-.classpath/
-.project/
+backend/go-server/bin/
 
-# Go
+# ── Go generated / vendor ────────────────────────────────────────────────────
 vendor/
 *.exe
 *.test
 __debug_bin
+backend/go-server/proto/
+go.sum
 
-# gRPC Generated Files (Focus on logic, not boilerplate)
+# ── Java generated ───────────────────────────────────────────────────────────
 **/generated-sources/
 **/generated/
 
-# IDEs
+# ── IDE ──────────────────────────────────────────────────────────────────────
 .idea/
 .vscode/
 *.iml
+.settings/
+.classpath/
+.project/
 
-backend/.idea/*
-backend/go-server/downloads/*
-backend/mp-spring/target/*
-backend/go-server/proto/
-
-docs/
-
+# ── Frontend deps / build ─────────────────────────────────────────────────────
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
+package-lock.json
+
+# ── Torrent downloads (runtime data, not code) ───────────────────────────────
+backend/go-server/downloads/
+
+# ── Prowlarr binary distribution (not our code, ~200MB) ──────────────────────
+backend/go-server/prowlarr/
+
+# ── Prowlarr runtime data ────────────────────────────────────────────────────
+# Definitions: 400+ external Cardigann YAML tracker scrapers, not project code
+backend/go-server/prowlarr-data/Definitions/
+backend/go-server/prowlarr-data/config.xml
+backend/go-server/prowlarr-data/asp/
+backend/go-server/prowlarr-data/Sentry/
+backend/go-server/prowlarr-data/logs/
+backend/go-server/prowlarr-data/*.db
+backend/go-server/prowlarr-data/*.db-shm
+backend/go-server/prowlarr-data/*.db-wal
+
+# ── Planning / POC docs (not code) ───────────────────────────────────────────
+POC/
+docs/
+
+# ── OS artifacts ─────────────────────────────────────────────────────────────
+bash.exe.stackdump
+.DS_Store
+Thumbs.db
+
+# ── Graphify local config (machine-specific) ──────────────────────────────────
+.graphify_python

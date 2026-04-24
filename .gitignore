@@ -1,9 +1,49 @@
-/.idea/
-backend/go-server/proto/*
-backend/.idea/*
-backend/go-server/downloads/*
-backend/mp-spring/target/*
+# ── IDE ──────────────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+bash.exe.stackdump
+.DS_Store
+Thumbs.db
+
+# ── Secrets / Environment ────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Go ───────────────────────────────────────────────────────────────────────
+backend/go-server/bin/
 backend/go-server/proto/
-**/graphify-out/cache/
+
+# ── Spring Boot ──────────────────────────────────────────────────────────────
+backend/mp-spring/target/
+
+# ── Frontend ─────────────────────────────────────────────────────────────────
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
+
+# ── Torrent downloads ────────────────────────────────────────────────────────
+backend/go-server/downloads/
+
+# ── Prowlarr binary distribution ─────────────────────────────────────────────
+backend/go-server/prowlarr/
+
+# ── Prowlarr runtime data (generated at startup, contains API keys/DBs) ──────
+backend/go-server/prowlarr-data/config.xml
+backend/go-server/prowlarr-data/Definitions/
+backend/go-server/prowlarr-data/asp/
+backend/go-server/prowlarr-data/Sentry/
+backend/go-server/prowlarr-data/logs/
+backend/go-server/prowlarr-data/*.db
+backend/go-server/prowlarr-data/*.db-shm
+backend/go-server/prowlarr-data/*.db-wal
+backend/go-server/prowlarr-data/*.log
+
+# ── Graphify cache (keep graph output, ignore cache) ─────────────────────────
+**/graphify-out/cache/
+
+# ── Graphify local config (machine-specific Python path) ─────────────────────
+.graphify_python

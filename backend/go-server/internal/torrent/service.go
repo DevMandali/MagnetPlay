@@ -305,14 +305,23 @@ func (s *TorrentService) ListTorrents(ctx context.Context, req *pb.ListTorrentsR
 		if info.Paused {
 			state = pb.TorrentState_TORRENT_PAUSED
 		}
+		infoHash := t.InfoHash().HexString()
+		s.trackerMu.Lock()
+		tr, ok := s.speedTrackers[infoHash]
+		if !ok {
+			tr = NewSpeedTracker(5)
+			s.speedTrackers[infoHash] = tr
+		}
+		s.trackerMu.Unlock()
+		tr.Record(downloaded, time.Now())
 		items = append(items, &pb.TorrentListItem{
-			TorrentId:        t.InfoHash().HexString(),
+			TorrentId:        infoHash,
 			Name:             t.Name(),
 			State:            state,
 			TotalSize:        totalSize,
 			DownloadedBytes:  downloaded,
 			CompletionPct:    pct,
-			DownloadSpeedBps: 0,
+			DownloadSpeedBps: tr.SpeedBps(),
 			Files:            files,
 		})
 	}
@@ -359,12 +368,37 @@ func (s *TorrentService) DeleteTorrent(ctx context.Context, req *pb.DeleteTorren
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "torrent not found: %s", req.GetInfoHash())
 	}
+	torrentName := info.Torrent().Name()
+	infoHash := req.GetInfoHash()
 	info.Torrent().Drop()
-	s.repo.Remove(req.GetInfoHash())
+	s.repo.Remove(infoHash)
+	s.trackerMu.Lock()
+	delete(s.speedTrackers, infoHash)
+	s.trackerMu.Unlock()
 	if req.GetDeleteFiles() {
-		dataDir := filepath.Join(".", "downloads", req.GetInfoHash())
-		if removeErr := os.RemoveAll(dataDir); removeErr != nil {
-			return &pb.DeleteTorrentResponse{Success: false, Message: removeErr.Error()}, nil
+		// anacrolix stores files as <dataDir>/<torrent.Name()>/... using .part extension
+		// while downloading. Drop() signals goroutines to stop but on Windows the OS
+		// may not release file handles immediately — retry with backoff.
+		torrentDir, absErr := filepath.Abs(filepath.Join(s.repo.dataDir, torrentName))
+		if absErr != nil {
+			torrentDir = filepath.Join(s.repo.dataDir, torrentName)
+		}
+		log.Printf("[delete] removing files at %s", torrentDir)
+		var removeErr error
+		for attempt := 1; attempt <= 5; attempt++ {
+			removeErr = os.RemoveAll(torrentDir)
+			if removeErr == nil {
+				break
+			}
+			log.Printf("[delete] attempt %d failed: %v — retrying", attempt, removeErr)
+			time.Sleep(time.Duration(attempt) * 250 * time.Millisecond)
+		}
+		if removeErr != nil {
+			// Still locked (e.g. anacrolix .part writer on Windows). Queue for
+			// guaranteed cleanup when server shuts down and all handles are released.
+			s.repo.QueueDelete(torrentDir)
+		} else {
+			log.Printf("[delete] removed %s", torrentDir)
 		}
 	}
 	return &pb.DeleteTorrentResponse{Success: true, Message: "deleted"}, nil

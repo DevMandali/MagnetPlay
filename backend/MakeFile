@@ -39,6 +39,11 @@ build:
 run:
 	cd $(GO_SERVER_DIR) && go run main.go
 
+# Run with Tor proxy — requires Tor service running on 9050 and onion URLs in env
+# Set INDEXER_1337X_URL / INDEXER_EZTV_URL / INDEXER_NYAA_URL before calling this target
+run-tor:
+	cd $(GO_SERVER_DIR) && PROWLARR_PROXY=socks5://127.0.0.1:9050 go run main.go
+
 # Tidy Go modules
 tidy:
 	cd $(GO_SERVER_DIR) && go mod tidy

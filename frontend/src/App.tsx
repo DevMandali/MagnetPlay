@@ -277,14 +277,16 @@ export default function App() {
             </div>
 
             {inputMode === 'search' ? (
-              <SearchPanel
-                onSelect={(mag) => {
-                  setMagnetLink(mag);
-                  setFetchState('idle');
-                  setFetchError(null);
-                  setInputMode('magnet');
-                }}
-              />
+              <div style={{ padding: '0 24px 24px' }}>
+                <SearchPanel
+                  onSelect={(mag) => {
+                    setMagnetLink(mag);
+                    setFetchState('idle');
+                    setFetchError(null);
+                    setInputMode('magnet');
+                  }}
+                />
+              </div>
             ) : (
               <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
                 <div className="form-group full">

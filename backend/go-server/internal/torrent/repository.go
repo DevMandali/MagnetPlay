@@ -3,6 +3,8 @@ package torrent
 import (
 	"context"
 	"fmt"
+	"log"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -13,9 +15,12 @@ import (
 
 type Repository struct {
 	client          *lt.Client
+	dataDir         string
 	torrents        map[string]*TorrentInfo
 	mu              sync.RWMutex
 	metadataTimeout time.Duration
+	pendingDelete   []string // dirs that failed runtime delete; removed on shutdown
+	deleteMu        sync.Mutex
 }
 
 type TorrentInfo struct {
@@ -30,9 +35,10 @@ func (ti *TorrentInfo) Torrent() *lt.Torrent { return ti.torrent }
 // Files returns a snapshot copy of the file map (safe for iteration outside lock).
 func (ti *TorrentInfo) Files() map[string]*lt.File { return ti.files }
 
-func NewRepository(client *lt.Client, metadataTimeout time.Duration) *Repository {
+func NewRepository(client *lt.Client, dataDir string, metadataTimeout time.Duration) *Repository {
 	return &Repository{
 		client:          client,
+		dataDir:         dataDir,
 		torrents:        make(map[string]*TorrentInfo),
 		metadataTimeout: metadataTimeout,
 	}
@@ -107,13 +113,37 @@ func (r *Repository) GetFile(infoHash, fileId string) (*lt.File, bool) {
 	return f, exists
 }
 
+// QueueDelete schedules a directory to be removed on shutdown, used when
+// runtime deletion fails due to Windows file handle locks on .part files.
+func (r *Repository) QueueDelete(dir string) {
+	r.deleteMu.Lock()
+	r.pendingDelete = append(r.pendingDelete, dir)
+	r.deleteMu.Unlock()
+	log.Printf("[delete] queued for shutdown cleanup: %s", dir)
+}
+
 func (r *Repository) Clearup() {
 	r.mu.Lock()
-	defer r.mu.Unlock()
-
 	for key, tInfo := range r.torrents {
 		tInfo.torrent.Drop()
 		delete(r.torrents, key)
+	}
+	r.mu.Unlock()
+
+	// All torrents are now dropped — OS file handles on .part files are released.
+	// Safe to delete any dirs that failed during runtime.
+	r.deleteMu.Lock()
+	pending := r.pendingDelete
+	r.pendingDelete = nil
+	r.deleteMu.Unlock()
+
+	for _, dir := range pending {
+		log.Printf("[shutdown] removing deferred %s", dir)
+		if err := os.RemoveAll(dir); err != nil {
+			log.Printf("[shutdown] failed to remove %s: %v", dir, err)
+		} else {
+			log.Printf("[shutdown] removed %s", dir)
+		}
 	}
 }
 

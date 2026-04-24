@@ -12,12 +12,13 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
 
 var healthClient = &http.Client{Timeout: 5 * time.Second}
-var schemaClient = &http.Client{Timeout: 60 * time.Second}
+var seedClient = &http.Client{Timeout: 60 * time.Second}
 
 type Manager struct {
 	mu       sync.Mutex
@@ -159,90 +160,151 @@ type indexerDef struct {
 }
 
 var defaultIndexers = []indexerDef{
-	{"1337x", "1337x"},
-	{"YTS", "yts"},
-	{"EZTV", "eztv"},
-	{"Nyaa", "nyaa"},
+	{name: "The Pirate Bay",   defFile: "thepiratebay"},
+	{name: "1337x",            defFile: "1337x"},
+	{name: "YTS",              defFile: "yts"},
+	{name: "EZTV",             defFile: "eztv"},
+	{name: "TorrentGalaxy",    defFile: "torrentgalaxyclone"},
+	{name: "LimeTorrents",     defFile: "limetorrents"},
+	{name: "TorrentDownloads", defFile: "torrentdownloads"},
+	{name: "RuTracker",        defFile: "rutracker-ru"},
+	{name: "MagnetDownload",   defFile: "magnetdownload"},
 }
 
 func (m *Manager) seedDefaultIndexers() {
-	listURL := fmt.Sprintf("%s/api/v1/indexer?apikey=%s", m.BaseURL(), m.APIKey())
+	baseURL := m.BaseURL()
+	apiKey := m.APIKey()
 
-	// Skip if indexers already configured
-	resp, err := healthClient.Get(listURL)
+	// Always delete existing indexers and re-seed from definition-specific schemas.
+	// Stale indexers get marked "Gone/410" by Prowlarr when definitions update;
+	// a fresh seed from the schema endpoint avoids this.
+	m.deleteAllIndexers(baseURL, apiKey)
+
+	appProfileID, err := m.defaultAppProfileID()
 	if err != nil {
-		log.Printf("[prowlarr] cannot check indexers: %v", err)
-		return
-	}
-	body, _ := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	var existing []json.RawMessage
-	if json.Unmarshal(bytes.TrimSpace(body), &existing) == nil && len(existing) > 0 {
-		log.Printf("[prowlarr] indexers already configured, skipping seed")
+		log.Printf("[prowlarr] cannot fetch app profiles: %v", err)
 		return
 	}
 
-	// Fetch the Cardigann schema template from Prowlarr
-	schema, err := m.cardigannSchema()
+	// Fetch all definition-specific schemas. Each entry in the list is a
+	// ready-to-POST template for one indexer — no field guessing needed.
+	schemas, err := m.fetchIndexerSchemas(baseURL, apiKey)
 	if err != nil {
-		log.Printf("[prowlarr] cannot fetch Cardigann schema: %v", err)
+		log.Printf("[prowlarr] cannot fetch indexer schemas: %v", err)
 		return
 	}
 
-	postURL := fmt.Sprintf("%s/api/v1/indexer?apikey=%s", m.BaseURL(), m.APIKey())
+	postURL := fmt.Sprintf("%s/api/v1/indexer?apikey=%s", baseURL, apiKey)
 	for _, def := range defaultIndexers {
+		schema, ok := schemas[def.defFile]
+		if !ok {
+			log.Printf("[prowlarr] no schema found for %s (defFile=%s)", def.name, def.defFile)
+			continue
+		}
 		payload := cloneMap(schema)
 		payload["name"] = def.name
 		payload["enableRss"] = false
 		payload["enableAutomaticSearch"] = true
 		payload["enableInteractiveSearch"] = true
-
-		// Set definitionFile inside the fields array
-		if fields, ok := payload["fields"].([]interface{}); ok {
-			for _, f := range fields {
-				if field, ok := f.(map[string]interface{}); ok && field["name"] == "definitionFile" {
-					field["value"] = def.defFile
-				}
-			}
-		}
+		payload["appProfileId"] = appProfileID
+		payload["priority"] = 25
 
 		data, err := json.Marshal(payload)
 		if err != nil {
 			log.Printf("[prowlarr] marshal %s: %v", def.name, err)
 			continue
 		}
-		r, err := healthClient.Post(postURL, "application/json", bytes.NewReader(data))
+		r, err := seedClient.Post(postURL, "application/json", bytes.NewReader(data))
 		if err != nil {
 			log.Printf("[prowlarr] seed %s: %v", def.name, err)
 			continue
 		}
+		respBody, _ := io.ReadAll(io.LimitReader(r.Body, 4096))
 		r.Body.Close()
 		if r.StatusCode == 201 {
 			log.Printf("[prowlarr] seeded: %s", def.name)
+		} else if r.StatusCode == 400 {
+			log.Printf("[prowlarr] seed %s skipped (unreachable): %s", def.name, extractProwlarrError(respBody))
 		} else {
-			log.Printf("[prowlarr] seed %s: status %d", def.name, r.StatusCode)
+			log.Printf("[prowlarr] seed %s: status %d — %s", def.name, r.StatusCode, string(respBody))
 		}
 	}
 }
 
-// cardigannSchema fetches Prowlarr's Cardigann indexer schema to use as a POST template.
-func (m *Manager) cardigannSchema() (map[string]interface{}, error) {
-	url := fmt.Sprintf("%s/api/v1/indexer/schema?apikey=%s", m.BaseURL(), m.APIKey())
-	resp, err := schemaClient.Get(url)
+func (m *Manager) deleteAllIndexers(baseURL, apiKey string) {
+	resp, err := healthClient.Get(fmt.Sprintf("%s/api/v1/indexer?apikey=%s", baseURL, apiKey))
+	if err != nil {
+		return
+	}
+	body, _ := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	var existing []map[string]interface{}
+	if err := json.Unmarshal(bytes.TrimSpace(body), &existing); err != nil || len(existing) == 0 {
+		return
+	}
+	for _, idx := range existing {
+		id, ok := idx["id"].(float64)
+		if !ok {
+			continue
+		}
+		req, _ := http.NewRequest(http.MethodDelete,
+			fmt.Sprintf("%s/api/v1/indexer/%d?apikey=%s", baseURL, int(id), apiKey), nil)
+		r, err := healthClient.Do(req)
+		if err == nil {
+			r.Body.Close()
+			log.Printf("[prowlarr] deleted indexer %d", int(id))
+		}
+	}
+}
+
+// fetchIndexerSchemas returns a map of defFile → schema, fetched from Prowlarr's
+// schema endpoint which lists one ready-to-POST template per available definition.
+func (m *Manager) fetchIndexerSchemas(baseURL, apiKey string) (map[string]map[string]interface{}, error) {
+	schemaClient := &http.Client{Timeout: 60 * time.Second}
+	resp, err := schemaClient.Get(fmt.Sprintf("%s/api/v1/indexer/schema?apikey=%s", baseURL, apiKey))
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
 	var schemas []map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&schemas); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode schemas: %w", err)
 	}
+	result := make(map[string]map[string]interface{}, len(schemas))
 	for _, s := range schemas {
-		if impl, ok := s["implementation"].(string); ok && impl == "Cardigann" {
-			return s, nil
+		// Each Cardigann schema has a definitionFile field identifying which tracker it is.
+		fields, _ := s["fields"].([]interface{})
+		for _, f := range fields {
+			field, _ := f.(map[string]interface{})
+			if field["name"] == "definitionFile" {
+				if val, _ := field["value"].(string); val != "" {
+					result[val] = s
+				}
+				break
+			}
 		}
 	}
-	return nil, fmt.Errorf("Cardigann not found in schema list")
+	log.Printf("[prowlarr] loaded %d indexer schemas", len(result))
+	return result, nil
+}
+
+// extractProwlarrError pulls the first errorMessage from Prowlarr's validation JSON array.
+func extractProwlarrError(body []byte) string {
+	var errs []struct {
+		ErrorMessage string `json:"errorMessage"`
+	}
+	if err := json.Unmarshal(body, &errs); err == nil && len(errs) > 0 {
+		msg := errs[0].ErrorMessage
+		// Truncate after the first sentence to keep logs clean
+		if i := strings.Index(msg, ". See:"); i > 0 {
+			msg = msg[:i]
+		}
+		return msg
+	}
+	if len(body) > 120 {
+		return string(body[:120])
+	}
+	return string(body)
 }
 
 // cloneMap deep-copies a map via JSON round-trip.
@@ -251,4 +313,25 @@ func cloneMap(m map[string]interface{}) map[string]interface{} {
 	var out map[string]interface{}
 	json.Unmarshal(b, &out)
 	return out
+}
+
+func (m *Manager) defaultAppProfileID() (int, error) {
+	url := fmt.Sprintf("%s/api/v1/appprofile?apikey=%s", m.BaseURL(), m.APIKey())
+	resp, err := healthClient.Get(url)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+	var profiles []map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&profiles); err != nil {
+		return 0, fmt.Errorf("decode app profiles: %w", err)
+	}
+	if len(profiles) == 0 {
+		return 0, fmt.Errorf("no app profiles found in Prowlarr")
+	}
+	id, ok := profiles[0]["id"].(float64)
+	if !ok {
+		return 0, fmt.Errorf("app profile id not a number")
+	}
+	return int(id), nil
 }

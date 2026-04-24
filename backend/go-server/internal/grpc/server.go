@@ -44,7 +44,7 @@ func StartServer(cfg config.Config) {
 		}
 	}()
 
-	repo := torrent.NewRepository(client, cfg.MetadataTimeout)
+	repo := torrent.NewRepository(client, cfg.DataDir, cfg.MetadataTimeout)
 	svc := torrent.NewTorrentService(repo)
 
 	grpcServer := grpc.NewServer()

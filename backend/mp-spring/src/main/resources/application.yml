@@ -5,6 +5,10 @@ server:
     max-initial-line-length: 65536
     max-header-size: 65536
 
+spring:
+  codec:
+    max-in-memory-size: 10MB
+
 springdoc:
   api-docs:
     path: /magnetplay-api-docs

@@ -20,7 +20,7 @@ class TorrentStatsControllerTest {
 
     @Test
     void stats_returns200() {
-        var stats = new TorrentStatsResponse("abc:0", 1000L, 500L, 50.0, 1024.0);
+        var stats = new TorrentStatsResponse("abc:0", 1000L, 500L, 50.0, 1024.0, 5, 10, 3);
         when(torrentService.getTorrentStats("abc", "abc:0")).thenReturn(Mono.just(stats));
 
         client.get()

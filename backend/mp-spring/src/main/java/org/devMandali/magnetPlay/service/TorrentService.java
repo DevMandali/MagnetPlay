@@ -12,6 +12,7 @@ import org.devMandali.magnetPlay.client.TorrentGrpcClient;
 import org.devMandali.magnetPlay.model.TorrentAddRequest;
 import org.devMandali.magnetPlay.model.TorrentAddResponse;
 import org.devMandali.magnetPlay.model.TorrentListResponse;
+import org.devMandali.magnetPlay.model.HLSStartResponse;
 import org.devMandali.magnetPlay.model.TorrentStatsResponse;
 import org.devMandali.magnetPlay.util.ByteUtil;
 import org.slf4j.Logger;
@@ -143,5 +144,39 @@ public class TorrentService {
                 .build();
 
         return grpcClient.streamFile(request);
+    }
+
+    public Mono<HLSStartResponse> startHLS(String infoHash, String fileId, double seekTimeSec) {
+        return grpcClient.startHLS(infoHash, fileId, seekTimeSec)
+                .map(r -> new HLSStartResponse(
+                        r.getManifestUrl(),
+                        r.getSuccess(),
+                        r.getDurationSec(),
+                        r.getAudioTracksList().stream()
+                                .map(t -> new HLSStartResponse.AudioTrackDto(
+                                        t.getIndex(), t.getLanguage(), t.getCodec(), t.getTitle()))
+                                .toList()
+                ))
+                .doOnError(e -> logger.error("startHLS error for {}/{}", infoHash, fileId, e));
+    }
+
+    public Mono<HLSStartResponse> startRemux(String infoHash, String fileId, double seekTimeSec) {
+        return grpcClient.startRemux(infoHash, fileId, seekTimeSec)
+                .map(r -> new HLSStartResponse(
+                        r.getManifestUrl(),
+                        r.getSuccess(),
+                        r.getDurationSec(),
+                        r.getAudioTracksList().stream()
+                                .map(t -> new HLSStartResponse.AudioTrackDto(
+                                        t.getIndex(), t.getLanguage(), t.getCodec(), t.getTitle()))
+                                .toList()
+                ))
+                .doOnError(e -> logger.error("startRemux error for {}/{}", infoHash, fileId, e));
+    }
+
+    public Mono<String> stopHLS(String infoHash, String fileId) {
+        return grpcClient.stopHLS(infoHash, fileId)
+                .map(r -> r.getSuccess() ? "stopped" : "not found")
+                .doOnError(e -> logger.error("stopHLS error for {}/{}", infoHash, fileId, e));
     }
 }

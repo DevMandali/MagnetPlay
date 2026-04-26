@@ -11,6 +11,7 @@ import org.devMandali.magnetPlay.FileInfoResponse;
 import org.devMandali.magnetPlay.model.SessionResponse;
 import org.devMandali.magnetPlay.model.TorrentAddRequest;
 import org.devMandali.magnetPlay.model.TorrentAddResponse;
+import org.devMandali.magnetPlay.model.HLSStartResponse;
 import org.devMandali.magnetPlay.model.TorrentListResponse;
 import org.devMandali.magnetPlay.model.TorrentStatsResponse;
 import org.devMandali.magnetPlay.service.TorrentService;
@@ -228,5 +229,40 @@ public class TorrentController {
         if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
         var addr = request.getRemoteAddress();
         return addr != null ? addr.getAddress().getHostAddress() : "unknown";
+    }
+
+    @PostMapping("/remux/{infoHash}/start")
+    public Mono<ResponseEntity<HLSStartResponse>> startRemux(
+            @PathVariable String infoHash,
+            @RequestParam String fileId,
+            @RequestParam(defaultValue = "0") double t) {
+        return service.startRemux(infoHash, fileId, t)
+                .map(resp -> resp.success()
+                        ? ResponseEntity.ok(resp)
+                        : ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).<HLSStartResponse>build())
+                .doOnError(e -> logger.error("startRemux REST error for {}/{}", infoHash, fileId, e))
+                .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+    }
+
+    @PostMapping("/hls/{infoHash}/start")
+    public Mono<ResponseEntity<HLSStartResponse>> startHLS(
+            @PathVariable String infoHash,
+            @RequestParam String fileId,
+            @RequestParam(defaultValue = "0") double t) {
+        return service.startHLS(infoHash, fileId, t)
+                .map(resp -> resp.success()
+                        ? ResponseEntity.ok(resp)
+                        : ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).<HLSStartResponse>build())
+                .doOnError(e -> logger.error("startHLS REST error for {}/{}", infoHash, fileId, e))
+                .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
+    }
+
+    @DeleteMapping("/hls/{infoHash}/stop")
+    public Mono<ResponseEntity<String>> stopHLS(
+            @PathVariable String infoHash,
+            @RequestParam String fileId) {
+        return service.stopHLS(infoHash, fileId)
+                .map(ResponseEntity::ok)
+                .onErrorReturn(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build());
     }
 }

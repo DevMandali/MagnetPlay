@@ -198,10 +198,73 @@ export function configureVhs(): void {
   // @ts-expect-error Vhs is not in @types/video.js
   if (videojs.Vhs) {
     // @ts-expect-error
-    videojs.Vhs.xhr.beforeRequest = (options: Record<string, unknown>) => {
+    videojs.Vhs.xhr.onRequest = (options: Record<string, unknown>) => {
       options.headers = (options.headers as Record<string, string>) ?? {};
       (options.headers as Record<string, string>)['X-Player'] = 'mp/1.0';
       return options;
     };
   }
+}
+
+export function registerAudioTrackButton(): void {
+  if (videojs.getComponent('AudioTrackMenuButton')) return;
+
+  const MenuButton = videojs.getComponent('MenuButton');
+  const MenuItem = videojs.getComponent('MenuItem');
+
+  class AudioTrackMenuItem extends MenuItem {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    constructor(player: ReturnType<typeof videojs>, options: any) {
+      super(player, options);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this as any).selectable = true;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this as any).isSelected_ = options.selected ?? false;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if ((this as any).isSelected_) this.addClass('vjs-selected');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    handleClick(event: any) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (MenuItem.prototype as any).handleClick.call(this, event);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tracks = this.player().audioTracks() as any;
+      for (let i = 0; i < tracks.length; i++) {
+        tracks[i].enabled = tracks[i].label === (this as any).options_.label;
+      }
+    }
+  }
+
+  class AudioTrackMenuButton extends MenuButton {
+    createEl() {
+      const el = super.createEl();
+      el.setAttribute('title', 'Audio Track');
+      return el;
+    }
+
+    createItems() {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tracks = this.player().audioTracks() as any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items: any[] = [];
+      for (let i = 0; i < tracks.length; i++) {
+        const track = tracks[i];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        items.push(new AudioTrackMenuItem(this.player(), {
+          label: track.label || track.language || `Track ${i + 1}`,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          selected: (track as any).enabled,
+        }));
+      }
+      return items;
+    }
+
+    buildCSSClass() {
+      return `vjs-audio-track-btn ${super.buildCSSClass()}`;
+    }
+  }
+
+  videojs.registerComponent('AudioTrackMenuItem', AudioTrackMenuItem);
+  videojs.registerComponent('AudioTrackMenuButton', AudioTrackMenuButton);
 }

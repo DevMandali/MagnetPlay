@@ -17,6 +17,8 @@ import org.devMandali.magnetPlay.ResumeTorrentRequest;
 import org.devMandali.magnetPlay.ResumeTorrentResponse;
 import org.devMandali.magnetPlay.DeleteTorrentRequest;
 import org.devMandali.magnetPlay.DeleteTorrentResponse;
+import org.devMandali.magnetPlay.HLSRequest;
+import org.devMandali.magnetPlay.HLSResponse;
 import org.devMandali.magnetPlay.StreamRequest;
 import org.devMandali.magnetPlay.TorrentRequest;
 import org.devMandali.magnetPlay.TorrentResponse;
@@ -134,6 +136,47 @@ public class TorrentGrpcClient {
                         .build()))
                 .subscribeOn(grpcScheduler)
                 .doOnError(e -> logger.error("deleteTorrent gRPC error for {}", infoHash, e));
+    }
+
+    // ─── StartHLS ────────────────────────────────────────────────────────────
+
+    public Mono<HLSResponse> startHLS(String infoHash, String fileId, double seekTimeSec) {
+        return Mono.fromCallable(() -> torrentServiceBlockingStub
+                .withDeadlineAfter(35, TimeUnit.SECONDS)
+                .startHLS(HLSRequest.newBuilder()
+                        .setInfoHash(infoHash)
+                        .setFileId(fileId)
+                        .setSeekTimeSec(seekTimeSec)
+                        .build()))
+                .subscribeOn(grpcScheduler)
+                .doOnError(e -> logger.error("startHLS gRPC error for {}/{}", infoHash, fileId, e));
+    }
+
+    // ─── StartRemux ──────────────────────────────────────────────────────────
+
+    public Mono<HLSResponse> startRemux(String infoHash, String fileId, double seekTimeSec) {
+        return Mono.fromCallable(() -> torrentServiceBlockingStub
+                .withDeadlineAfter(15, TimeUnit.SECONDS)
+                .startRemux(HLSRequest.newBuilder()
+                        .setInfoHash(infoHash)
+                        .setFileId(fileId)
+                        .setSeekTimeSec(seekTimeSec)
+                        .build()))
+                .subscribeOn(grpcScheduler)
+                .doOnError(e -> logger.error("startRemux gRPC error for {}/{}", infoHash, fileId, e));
+    }
+
+    // ─── StopHLS ─────────────────────────────────────────────────────────────
+
+    public Mono<HLSResponse> stopHLS(String infoHash, String fileId) {
+        return Mono.fromCallable(() -> torrentServiceBlockingStub
+                .withDeadlineAfter(10, TimeUnit.SECONDS)
+                .stopHLS(HLSRequest.newBuilder()
+                        .setInfoHash(infoHash)
+                        .setFileId(fileId)
+                        .build()))
+                .subscribeOn(grpcScheduler)
+                .doOnError(e -> logger.error("stopHLS gRPC error for {}/{}", infoHash, fileId, e));
     }
 
     // ─── StreamFile ──────────────────────────────────────────────────────────

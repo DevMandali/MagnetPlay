@@ -19,7 +19,7 @@ func newTestRepository() *Repository {
 }
 
 func TestGetTorrentStats_UnknownHash(t *testing.T) {
-	svc := NewTorrentService(newTestRepository())
+	svc := NewTorrentService(newTestRepository(), nil, "", "")
 	_, err := svc.GetTorrentStats(context.Background(), &pb.GetTorrentStatsRequest{
 		InfoHash: "nonexistent",
 		FileId:   "nonexistent:0",
@@ -30,7 +30,7 @@ func TestGetTorrentStats_UnknownHash(t *testing.T) {
 }
 
 func TestListTorrents_EmptyRepo(t *testing.T) {
-	svc := NewTorrentService(newTestRepository())
+	svc := NewTorrentService(newTestRepository(), nil, "", "")
 	resp, err := svc.ListTorrents(context.Background(), &pb.ListTorrentsRequest{})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

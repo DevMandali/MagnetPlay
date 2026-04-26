@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { TorrentFile, ActivePlayer, SubtitleTrack, MoovStatus, FetchState, TorrentFileStats } from './types';
+import { TorrentFile, ActivePlayer, SubtitleTrack, MoovStatus, FetchState, TorrentFileStats, RemuxStartResponse } from './types';
 import { srtToVtt, readFileAsText } from './lib/utils';
 import SubtitlePanel from './components/SubtitlePanel';
 import StatusPanel from './components/StatusPanel';
@@ -32,7 +32,7 @@ export default function App() {
   const [infoHash, setInfoHash] = useState('');
 
   // Player state
-  const [draft, setDraft] = useState({ infoHash: '', fileId: '', mimeType: 'video/mp4' });
+  const [draft, setDraft] = useState({ infoHash: '', fileId: '', mimeType: 'video/mp4', fileName: '' });
   const [active, setActive] = useState<ActivePlayer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [moovStatus, setMoovStatus] = useState<MoovStatus>('idle');
@@ -117,7 +117,7 @@ export default function App() {
     setFetchError(null);
     setTorrentFiles([]);
     setInfoHash('');
-    setDraft({ infoHash: '', fileId: '', mimeType: 'video/mp4' });
+    setDraft({ infoHash: '', fileId: '', mimeType: 'video/mp4', fileName: '' });
     setConfigCollapsed(false);
     setInputMode('magnet');
   };
@@ -146,7 +146,7 @@ export default function App() {
       const firstVideo = files.find(f => /\.(mp4|mkv|avi|mov|webm|ts|m4v|flv)$/i.test(f.name)) ?? files[0];
       setInfoHash(hash);
       setTorrentFiles(files);
-      setDraft(d => ({ ...d, infoHash: hash, fileId: firstVideo.id }));
+      setDraft(d => ({ ...d, infoHash: hash, fileId: firstVideo.id, fileName: firstVideo.name }));
       setStep(2);
       setFetchState('idle');
     } catch (err) {
@@ -158,13 +158,47 @@ export default function App() {
   const handleChange = (field: string) => (e: React.ChangeEvent<HTMLSelectElement>) =>
     setDraft(d => ({ ...d, [field]: e.target.value }));
 
-  const handlePlay = () => {
+  const handlePlay = async () => {
     if (!draft.infoHash.trim() || !draft.fileId.trim()) return;
     setError(null);
     setMoovStatus('idle');
-    setActive({ ...draft });
     setSubtitleTracks([]);
     setConfigCollapsed(true);
+
+    const isMkv = draft.fileName.toLowerCase().endsWith('.mkv');
+
+    if (isMkv) {
+      try {
+        const res = await fetch(
+          `/v1/torrent/remux/${draft.infoHash}/start?fileId=${encodeURIComponent(draft.fileId)}&t=0`,
+          { method: 'POST', signal: AbortSignal.timeout(15000) }
+        );
+        if (!res.ok) throw new Error(`Remux start failed: ${res.status}`);
+        const data: RemuxStartResponse = await res.json();
+        if (!data.success) throw new Error('Remux handler failed to start');
+        setActive({
+          infoHash: draft.infoHash,
+          fileId: draft.fileId,
+          mimeType: 'video/mp4',
+          isMkv: true,
+          streamUrl: data.manifestUrl,
+          durationSec: data.durationSec,
+          audioTracks: data.audioTracks,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to start remux stream');
+      }
+    } else {
+      setActive({
+        infoHash: draft.infoHash,
+        fileId: draft.fileId,
+        mimeType: draft.mimeType,
+        isMkv: false,
+        streamUrl: '',
+        durationSec: 0,
+        audioTracks: [],
+      });
+    }
   };
 
   const handleError = useCallback((err: { code: number; message: string } | null) => {
@@ -483,6 +517,10 @@ export default function App() {
             infoHash={active.infoHash}
             fileId={active.fileId}
             mimeType={active.mimeType}
+            isMkv={active.isMkv}
+            streamUrl={active.streamUrl}
+            durationSec={active.durationSec}
+            audioTracks={active.audioTracks}
             subtitleTracks={subtitleTracks}
             onError={handleError}
             onMoovStatus={setMoovStatus}

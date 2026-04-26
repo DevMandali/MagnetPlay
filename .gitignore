@@ -47,3 +47,10 @@ backend/go-server/prowlarr-data/*.log
 
 # ── Graphify local config (machine-specific Python path) ─────────────────────
 .graphify_python
+
+# ── Claude local settings (machine-specific API keys) ───────────────────────
+.claude/settings.local.json
+
+# ── Logs ───────────────────────────────────────────────────────────────────────
+backend/go-server/logs/*
+backend/mp-spring/logs/*

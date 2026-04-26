@@ -14,6 +14,9 @@ type Config struct {
 	DataDir         string
 	MetadataTimeout time.Duration
 	Prowlarr        ProwlarrConfig
+	FFmpegPath      string
+	FFprobePath     string
+	HLSPort int
 }
 
 func Default() Config {
@@ -27,5 +30,6 @@ func Default() Config {
 			Port:         9696,
 			SeedIndexers: true,
 		},
+		HLSPort: 8091,
 	}
 }

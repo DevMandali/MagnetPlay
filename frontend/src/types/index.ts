@@ -4,10 +4,35 @@ export interface TorrentFile {
   sizeLabel: string;
 }
 
+export interface AudioTrack {
+  index: number;
+  language: string;
+  codec: string;
+  title: string;
+}
+
+export interface HLSStartResponse {
+  manifestUrl: string;
+  success: boolean;
+  durationSec: number;
+  audioTracks: AudioTrack[];
+}
+
+export interface RemuxStartResponse {
+  manifestUrl: string; // holds the remux base URL returned by /remux/{hash}/start
+  success: boolean;
+  durationSec: number;
+  audioTracks: AudioTrack[];
+}
+
 export interface ActivePlayer {
   infoHash: string;
   fileId: string;
   mimeType: string;
+  isMkv: boolean;
+  streamUrl: string; // remux base URL for MKV; empty for non-MKV
+  durationSec: number;
+  audioTracks: AudioTrack[];
 }
 
 export interface SubtitleTrack {

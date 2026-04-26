@@ -3,15 +3,19 @@ package torrent
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"log"
 	"mime"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"server/internal/hls"
 	pb "server/proto"
 
 	lt "github.com/anacrolix/torrent"
@@ -35,17 +39,38 @@ const (
 	torrentInfoTimeout = 180 * time.Second
 )
 
-type TorrentService struct {
-	pb.UnimplementedTorrentServiceServer
-	repo          *Repository
-	speedTrackers map[string]*SpeedTracker
-	trackerMu     sync.Mutex
+type probeResult struct {
+	DurationSec float64
+	AudioTracks []*pb.AudioTrack
+	VideoCodec  string // e.g. "h264", "hevc", "av1"
+	AudioCodec  string // first audio track codec, e.g. "aac", "eac3", "ac3"
 }
 
-func NewTorrentService(repo *Repository) *TorrentService {
+// IsMKV returns true if the file path has a .mkv extension (case-insensitive).
+func IsMKV(path string) bool {
+	return strings.ToLower(filepath.Ext(path)) == ".mkv"
+}
+
+type TorrentService struct {
+	pb.UnimplementedTorrentServiceServer
+	repo           *Repository
+	speedTrackers  map[string]*SpeedTracker
+	trackerMu      sync.Mutex
+	remuxHandler   *hls.RemuxHandler
+	ffprobePath    string
+	hlsFileBaseURL string // e.g. "http://localhost:8091/rawfile"
+	probeCache     map[string]*probeResult
+	probeMu        sync.RWMutex
+}
+
+func NewTorrentService(repo *Repository, remuxHandler *hls.RemuxHandler, ffprobePath string, hlsFileBaseURL string) *TorrentService {
 	return &TorrentService{
-		repo:          repo,
-		speedTrackers: make(map[string]*SpeedTracker),
+		repo:           repo,
+		speedTrackers:  make(map[string]*SpeedTracker),
+		remuxHandler:   remuxHandler,
+		ffprobePath:    ffprobePath,
+		hlsFileBaseURL: hlsFileBaseURL,
+		probeCache:     make(map[string]*probeResult),
 	}
 }
 
@@ -96,13 +121,29 @@ func (s *TorrentService) GetFileInfo(ctx context.Context, req *pb.FileInfoReques
 		return nil, status.Errorf(codes.NotFound, "file not found: %s", req.GetFileId())
 	}
 
-	return &pb.FileInfoResponse{
+	mimeType := mime.TypeByExtension(filepath.Ext(f.DisplayPath()))
+	resp := &pb.FileInfoResponse{
 		FileName:  filepath.Base(f.DisplayPath()),
 		FilePath:  f.DisplayPath(),
 		TotalSize: f.Length(),
-		MimeType:  mime.TypeByExtension(filepath.Ext(f.DisplayPath())),
+		MimeType:  mimeType,
 		IsReady:   true,
-	}, nil
+	}
+
+	if IsMKV(f.DisplayPath()) {
+		resp.MimeType = "video/mp4"
+		log.Printf("[mkv] GetFileInfo: detected MKV file=%s size=%d", filepath.Base(f.DisplayPath()), f.Length())
+		probe := s.getOrProbe(req.GetInfoHash(), req.GetFileId(), t, f)
+		if probe != nil {
+			resp.DurationSec = probe.DurationSec
+			resp.AudioTracks = probe.AudioTracks
+			log.Printf("[mkv] GetFileInfo: probe ok duration=%.1fs audio_tracks=%d", probe.DurationSec, len(probe.AudioTracks))
+		} else {
+			log.Printf("[mkv] GetFileInfo: probe returned nil (ffprobe unavailable or failed) — duration/audio will be unknown")
+		}
+	}
+
+	return resp, nil
 }
 
 func (s *TorrentService) StreamFile(req *pb.StreamRequest, stream pb.TorrentService_StreamFileServer) error {
@@ -172,7 +213,7 @@ func (s *TorrentService) StreamFile(req *pb.StreamRequest, stream pb.TorrentServ
 
 	// ── Prioritize pieces for requested byte range ─────────────────────────────
 	log.Println("[PRIORITY] prioritizing pieces for requested byte range...")
-	prioritize(t, f, req.GetStartByte(), req.GetEndByte())
+	Prioritize(t, f, req.GetStartByte(), req.GetEndByte())
 
 	log.Printf("streaming %s | range [%d, %d] | total %d bytes",
 		f.DisplayPath(), startByte, endByte, f.Length())
@@ -404,7 +445,161 @@ func (s *TorrentService) DeleteTorrent(ctx context.Context, req *pb.DeleteTorren
 	return &pb.DeleteTorrentResponse{Success: true, Message: "deleted"}, nil
 }
 
-func prioritize(t *lt.Torrent, f *lt.File, start, end int64) {
+func (s *TorrentService) getOrProbe(infoHash, fileId string, _ *lt.Torrent, f *lt.File) *probeResult {
+	key := infoHash + ":" + fileId
+	s.probeMu.RLock()
+	if cached, ok := s.probeCache[key]; ok {
+		s.probeMu.RUnlock()
+		log.Printf("[ffprobe] cache hit for fileId=%s duration=%.1fs audio=%d", fileId, cached.DurationSec, len(cached.AudioTracks))
+		return cached
+	}
+	s.probeMu.RUnlock()
+
+	if s.ffprobePath == "" {
+		log.Printf("[ffprobe] skipped — ffprobePath not configured")
+		return nil
+	}
+
+	log.Printf("[ffprobe] probing fileId=%s file=%s", fileId, filepath.Base(f.DisplayPath()))
+	reader := f.NewReader()
+	reader.SetResponsive()
+	reader.SetReadahead(readahead)
+	defer reader.Close()
+
+	result := runFFprobe(s.ffprobePath, reader)
+	if result == nil {
+		log.Printf("[ffprobe] probe failed for fileId=%s", fileId)
+		return nil
+	}
+
+	log.Printf("[ffprobe] probe ok fileId=%s duration=%.1fs audio_tracks=%d", fileId, result.DurationSec, len(result.AudioTracks))
+	s.probeMu.Lock()
+	s.probeCache[key] = result
+	s.probeMu.Unlock()
+	return result
+}
+
+func runFFprobe(ffprobePath string, r io.Reader) *probeResult {
+	ctx, cancel := context.WithTimeout(context.Background(), 12*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, ffprobePath,
+		"-v", "quiet",
+		"-print_format", "json",
+		"-show_streams",
+		"-show_format",
+		"-analyzeduration", "3000000",
+		"-probesize", "3000000",
+		"pipe:0",
+	)
+	cmd.Stdin = r
+	log.Printf("[ffprobe] exec started (timeout=12s probesize=3MB)")
+	out, err := cmd.Output()
+	if err != nil {
+		if ctx.Err() != nil {
+			log.Printf("[ffprobe] timed out after 12s")
+		} else {
+			log.Printf("[ffprobe] exec failed: %v", err)
+		}
+		return nil
+	}
+	log.Printf("[ffprobe] exec ok output_bytes=%d", len(out))
+
+	var probe struct {
+		Streams []struct {
+			Index     int    `json:"index"`
+			CodecType string `json:"codec_type"`
+			CodecName string `json:"codec_name"`
+			Tags      struct {
+				Language string `json:"language"`
+				Title    string `json:"title"`
+			} `json:"tags"`
+			Duration string `json:"duration"`
+		} `json:"streams"`
+		Format struct {
+			Duration string `json:"duration"`
+		} `json:"format"`
+	}
+	if err := json.Unmarshal(out, &probe); err != nil {
+		log.Printf("[ffprobe] json parse error: %v", err)
+		return nil
+	}
+
+	result := &probeResult{}
+	for _, s := range probe.Streams {
+		if s.CodecType == "video" && result.VideoCodec == "" {
+			result.VideoCodec = s.CodecName
+			if d, err := strconv.ParseFloat(s.Duration, 64); err == nil {
+				result.DurationSec = d
+			}
+		}
+		if s.CodecType == "audio" {
+			if result.AudioCodec == "" {
+				result.AudioCodec = s.CodecName
+			}
+			result.AudioTracks = append(result.AudioTracks, &pb.AudioTrack{
+				Index:    int32(s.Index),
+				Language: s.Tags.Language,
+				Codec:    s.CodecName,
+				Title:    s.Tags.Title,
+			})
+		}
+	}
+	if result.DurationSec == 0 {
+		if d, err := strconv.ParseFloat(probe.Format.Duration, 64); err == nil {
+			result.DurationSec = d
+		}
+	}
+	log.Printf("[ffprobe] codecs video=%s audio=%s", result.VideoCodec, result.AudioCodec)
+	return result
+}
+
+func (s *TorrentService) StartRemux(ctx context.Context, req *pb.HLSRequest) (*pb.HLSResponse, error) {
+	log.Printf("[remux] StartRemux hash=%s fileId=%s seek=%.1fs", req.GetInfoHash(), req.GetFileId(), req.GetSeekTimeSec())
+	if s.remuxHandler == nil {
+		return &pb.HLSResponse{Success: false}, status.Error(codes.Unavailable, "remux handler not configured")
+	}
+
+	t, ok := s.repo.GetTorrent(req.GetInfoHash())
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "torrent not found: %s", req.GetInfoHash())
+	}
+
+	f, ok := s.repo.GetFile(req.GetInfoHash(), req.GetFileId())
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "file not found: %s", req.GetFileId())
+	}
+
+	probe := s.getOrProbe(req.GetInfoHash(), req.GetFileId(), t, f)
+
+	// Prefer stream copy when source codec is browser-safe; otherwise transcode.
+	videoCodec := "libx264"
+	audioCodec := "aac"
+	if probe != nil {
+		if strings.EqualFold(probe.VideoCodec, "h264") {
+			videoCodec = "copy"
+		}
+		if strings.EqualFold(probe.AudioCodec, "aac") {
+			audioCodec = "copy"
+		}
+		log.Printf("[remux] codec decision vc=%s ac=%s (src video=%s audio=%s)",
+			videoCodec, audioCodec, probe.VideoCodec, probe.AudioCodec)
+	}
+
+	streamURL := s.remuxHandler.GetRemuxBaseURL(req.GetInfoHash(), req.GetFileId(), videoCodec, audioCodec)
+	log.Printf("[remux] StartRemux ok streamUrl=%s", streamURL)
+
+	resp := &pb.HLSResponse{
+		ManifestUrl: streamURL,
+		Success:     true,
+	}
+	if probe != nil {
+		resp.DurationSec = probe.DurationSec
+		resp.AudioTracks = probe.AudioTracks
+	}
+	return resp, nil
+}
+
+func Prioritize(t *lt.Torrent, f *lt.File, start, end int64) {
 	// anacrolix doesn't have a built-in way to prioritize specific byte ranges,
 	// but we can achieve this by prioritizing the pieces that overlap the range.
 	pieceLen := t.Info().PieceLength

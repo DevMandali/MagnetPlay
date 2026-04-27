@@ -21,6 +21,6 @@ public record StreamingSession(
 
     public StreamingSession withClosed(Instant end, SessionStatus s, CloseReason r) {
         return new StreamingSession(sessionId, infoHash, fileId, clientIp, userAgent,
-            startTime, end, startByte, bytesServed, s, r);
+            startTime, end, startByte, new AtomicLong(bytesServed.get()), s, r);
     }
 }

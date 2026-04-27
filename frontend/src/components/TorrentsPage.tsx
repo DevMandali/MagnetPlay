@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { TorrentListItem, StreamingSession } from '../types';
 
 interface TorrentsPageProps {
@@ -42,23 +42,23 @@ export function TorrentsPage({ apiBase = 'http://localhost:8080', onClose }: Tor
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [actioning, setActioning] = useState<Set<string>>(new Set());
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [t, s] = await Promise.all([
-        fetch(`${apiBase}/v1/torrent/list`).then(r => r.json()),
-        fetch(`${apiBase}/v1/torrent/sessions`).then(r => r.json()),
+        fetch(`${apiBase}/v1/torrent/list`).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
+        fetch(`${apiBase}/v1/torrent/sessions`).then(r => { if (!r.ok) throw new Error(); return r.json(); }),
       ]);
       setTorrents(t.torrents ?? []);
       setSessions(s.sessions ?? []);
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  };
+  }, [apiBase]);
 
   useEffect(() => {
     fetchData();
     const id = setInterval(fetchData, 3000);
     return () => clearInterval(id);
-  }, []);
+  }, [fetchData]);
 
   const withAction = async (id: string, fn: () => Promise<Response>) => {
     if (actioning.has(id)) return;

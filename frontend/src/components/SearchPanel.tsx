@@ -145,8 +145,9 @@ export default function SearchPanel({ onSelect }: Props) {
       if (res.status === 503) throw new Error('Search unavailable — Prowlarr not running');
       if (!res.ok) throw new Error(`Search error: ${res.status}`);
       const data: SearchResultsResponse = await res.json();
-      setResults(data.results);
-      if (data.results.length === 0) setError('No results found');
+      const items = data.results ?? [];
+      setResults(items);
+      if (items.length === 0) setError('No results found');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Search failed');
     } finally {

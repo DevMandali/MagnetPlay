@@ -55,6 +55,7 @@ func (m *Manager) Start() error {
 		return err
 	}
 
+	m.mu.Lock()
 	m.cmd = exec.Command(binPath,
 		"--data="+m.dataDir,
 		fmt.Sprintf("--port=%d", m.port),
@@ -62,6 +63,7 @@ func (m *Manager) Start() error {
 	)
 	m.cmd.Stdout = os.Stdout
 	m.cmd.Stderr = os.Stderr
+	m.mu.Unlock()
 
 	if err := m.cmd.Start(); err != nil {
 		return fmt.Errorf("start prowlarr: %w", err)
@@ -160,15 +162,15 @@ type indexerDef struct {
 }
 
 var defaultIndexers = []indexerDef{
-	{name: "The Pirate Bay",   defFile: "thepiratebay"},
-	{name: "1337x",            defFile: "1337x"},
-	{name: "YTS",              defFile: "yts"},
-	{name: "EZTV",             defFile: "eztv"},
-	{name: "TorrentGalaxy",    defFile: "torrentgalaxyclone"},
-	{name: "LimeTorrents",     defFile: "limetorrents"},
+	{name: "The Pirate Bay", defFile: "thepiratebay"},
+	{name: "1337x", defFile: "1337x"},
+	{name: "YTS", defFile: "yts"},
+	{name: "EZTV", defFile: "eztv"},
+	{name: "TorrentGalaxy", defFile: "torrentgalaxyclone"},
+	{name: "LimeTorrents", defFile: "limetorrents"},
 	{name: "TorrentDownloads", defFile: "torrentdownloads"},
-	{name: "RuTracker",        defFile: "rutracker-ru"},
-	{name: "MagnetDownload",   defFile: "magnetdownload"},
+	{name: "RuTracker", defFile: "rutracker-ru"},
+	{name: "MagnetDownload", defFile: "magnetdownload"},
 }
 
 func (m *Manager) seedDefaultIndexers() {
@@ -234,12 +236,16 @@ func (m *Manager) seedDefaultIndexers() {
 func (m *Manager) deleteAllIndexers(baseURL, apiKey string) {
 	resp, err := healthClient.Get(fmt.Sprintf("%s/api/v1/indexer?apikey=%s", baseURL, apiKey))
 	if err != nil {
+		log.Printf("[prowlarr] failed to list indexers for deletion: %v", err)
 		return
 	}
-	body, _ := io.ReadAll(resp.Body)
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20)) // 1MB limit
 	resp.Body.Close()
 	var existing []map[string]interface{}
 	if err := json.Unmarshal(bytes.TrimSpace(body), &existing); err != nil || len(existing) == 0 {
+		if err != nil {
+			log.Printf("[prowlarr] failed to parse indexer list: %v", err)
+		}
 		return
 	}
 	for _, idx := range existing {
@@ -307,11 +313,16 @@ func extractProwlarrError(body []byte) string {
 	return string(body)
 }
 
-// cloneMap deep-copies a map via JSON round-trip.
+// cloneMap deep-copies a map via JSON round-trip. Returns empty map on error.
 func cloneMap(m map[string]interface{}) map[string]interface{} {
-	b, _ := json.Marshal(m)
+	b, err := json.Marshal(m)
+	if err != nil {
+		return make(map[string]interface{})
+	}
 	var out map[string]interface{}
-	json.Unmarshal(b, &out)
+	if err := json.Unmarshal(b, &out); err != nil {
+		return make(map[string]interface{})
+	}
 	return out
 }
 

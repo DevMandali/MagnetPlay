@@ -6,20 +6,34 @@ import { SubtitleTrack, MoovStatus, AudioTrack } from '../types';
 import { detectMoovPosition } from '../lib/utils';
 import NetflixSkipOverlay from './NetflixSkipOverlay';
 
+const MIME_LABELS: Record<string, string> = {
+  'video/mp4': 'MP4',
+  'video/webm': 'WebM',
+  'application/x-mpegURL': 'HLS',
+};
+
 interface Props {
   infoHash: string;
   fileId: string;
+  fileName: string;
   mimeType: string;
   isMkv: boolean;
   streamUrl: string;
   durationSec: number;
   audioTracks: AudioTrack[];
   subtitleTracks: SubtitleTrack[];
+  moovBadge: { cls: string; icon: string; spin: boolean; label: string } | null;
+  peerStats: { seeders: number; peers: number; trackers: number } | null;
+  showStatusPanel: boolean;
+  onToggleStatusPanel: () => void;
+  showSubPanel: boolean;
+  onToggleSubPanel: () => void;
+  subtitleTrackCount: number;
   onError?: (err: { code: number; message: string } | null) => void;
   onMoovStatus?: (status: MoovStatus) => void;
 }
 
-export default function VideoPlayer({ infoHash, fileId, mimeType, isMkv, streamUrl, durationSec, audioTracks, subtitleTracks, onError, onMoovStatus }: Props) {
+export default function VideoPlayer({ infoHash, fileId, fileName, mimeType, isMkv, streamUrl, durationSec, audioTracks, subtitleTracks, moovBadge, peerStats, showStatusPanel, onToggleStatusPanel, showSubPanel, onToggleSubPanel, subtitleTrackCount, onError, onMoovStatus }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<ReturnType<typeof videojs> | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,7 +131,9 @@ export default function VideoPlayer({ infoHash, fileId, mimeType, isMkv, streamU
     const p = playerRef.current;
     if (!p) return;
     const absoluteNow = getAbsoluteTime();
-    const dur = isFinite(p.duration() ?? Infinity) ? (p.duration() ?? Infinity) : Infinity;
+    const dur = isMkvRef.current && durationSecRef.current > 0
+      ? durationSecRef.current
+      : (isFinite(p.duration() ?? Infinity) ? (p.duration() ?? Infinity) : Infinity);
     const target = Math.max(0, Math.min(dur, absoluteNow + secs));
     if (isMkvRef.current) { mkvSeekTo(target); } else { p.currentTime(target); }
     const side: 'left' | 'right' = secs > 0 ? 'right' : 'left';
@@ -139,7 +155,10 @@ export default function VideoPlayer({ infoHash, fileId, mimeType, isMkv, streamU
       // All percentage-key seeks must also go through mkvSeekTo so the
       // correct target reaches the 'seeking' handler.
       const seekPct = (pct: number) => {
-        const target = (p.duration() ?? 0) * pct;
+        const dur = isMkvRef.current && durationSecRef.current > 0
+          ? durationSecRef.current
+          : (p.duration() ?? 0);
+        const target = dur * pct;
         if (isMkvRef.current) { mkvSeekTo(target); } else { p.currentTime(target); }
       };
 
@@ -238,6 +257,7 @@ export default function VideoPlayer({ infoHash, fileId, mimeType, isMkv, streamU
       onError?.(err ? { code: err.code, message: err.message } : null);
     });
 
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     player.on('mp-skip', (e: any) => {
       const dir: string = e.direction;
@@ -257,7 +277,7 @@ export default function VideoPlayer({ infoHash, fileId, mimeType, isMkv, streamU
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         SeekBarComp.prototype.handleMouseMove = function(this: any, event: any, mouseDown = false) {
           const dur: number = this.player_?._mpDuration;
-          if (dur > 0) {
+          if (mouseDown && dur > 0) {
             const distance: number = this.calculateDistance(event);
             const target = Math.max(0, Math.min(dur, distance * dur));
             // Write _mpPendingSeek BEFORE currentTime() so the 'seeking' handler
@@ -289,14 +309,18 @@ export default function VideoPlayer({ infoHash, fileId, mimeType, isMkv, streamU
       if (CurrentTimeDisplayComp && !CurrentTimeDisplayComp.prototype._mpCtdPatched) {
         const origCtd = CurrentTimeDisplayComp.prototype.updateContent;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        CurrentTimeDisplayComp.prototype.updateContent = function(this: any) {
+        CurrentTimeDisplayComp.prototype.updateContent = function(this: any, event: any) {
           const offset: number = this.player_?._mpSeekOffset ?? 0;
           const dur: number    = this.player_?._mpDuration ?? 0;
-          if (offset > 0 && dur > 0 && typeof this.updateFormattedTime_ === 'function') {
-            this.updateFormattedTime_((this.player_.currentTime() ?? 0) + offset, dur);
+          if (offset > 0 && dur > 0) {
+            // video.js 8 uses updateTextNode_(time) — no duration arg, no updateFormattedTime_
+            const rawTime: number = this.player_.scrubbing()
+              ? (this.player_.getCache().currentTime ?? 0)
+              : (this.player_.currentTime() ?? 0);
+            if (typeof this.updateTextNode_ === 'function') this.updateTextNode_(rawTime + offset);
             return;
           }
-          origCtd.call(this);
+          origCtd.call(this, event);
         };
         CurrentTimeDisplayComp.prototype._mpCtdPatched = true;
       }
@@ -306,15 +330,17 @@ export default function VideoPlayer({ infoHash, fileId, mimeType, isMkv, streamU
       if (RemainingTimeDisplayComp && !RemainingTimeDisplayComp.prototype._mpRtdPatched) {
         const origRtd = RemainingTimeDisplayComp.prototype.updateContent;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        RemainingTimeDisplayComp.prototype.updateContent = function(this: any) {
+        RemainingTimeDisplayComp.prototype.updateContent = function(this: any, event: any) {
           const offset: number = this.player_?._mpSeekOffset ?? 0;
           const dur: number    = this.player_?._mpDuration ?? 0;
-          if (offset > 0 && dur > 0 && typeof this.updateFormattedTime_ === 'function') {
-            const ct = (this.player_.currentTime() ?? 0) + offset;
-            this.updateFormattedTime_(Math.max(0, dur - ct), dur);
+          if (offset > 0 && dur > 0) {
+            const rawTime: number = this.player_.scrubbing()
+              ? (this.player_.getCache().currentTime ?? 0)
+              : (this.player_.currentTime() ?? 0);
+            if (typeof this.updateTextNode_ === 'function') this.updateTextNode_(Math.max(0, dur - (rawTime + offset)));
             return;
           }
-          origRtd.call(this);
+          origRtd.call(this, event);
         };
         RemainingTimeDisplayComp.prototype._mpRtdPatched = true;
       }
@@ -411,6 +437,55 @@ export default function VideoPlayer({ infoHash, fileId, mimeType, isMkv, streamU
       onDragStart={(e) => e.preventDefault()}
     >
       <div ref={containerRef} />
+      {playerEl && createPortal(
+        <div className="nf-top-overlay">
+          <div className="nf-top-left">
+            <span className="nf-live-dot" />
+            <span className="nf-title">{fileName}</span>
+          </div>
+          <div className="nf-top-right">
+            {moovBadge && (
+              <span className={`badge ${moovBadge.cls}`} title={moovBadge.label}>
+                <span className={moovBadge.spin ? 'badge-spin' : ''}>{moovBadge.icon}</span>
+                &nbsp;{moovBadge.label}
+              </span>
+            )}
+            <span className="badge badge-mime">{MIME_LABELS[mimeType] ?? mimeType}</span>
+            {peerStats !== null && (
+              <span
+                className={`badge ${peerStats.seeders > 0 ? 'badge-ok' : 'badge-muted'}`}
+                title={`${peerStats.peers} active peers · ${peerStats.trackers} trackers`}
+              >
+                ⇅ {peerStats.seeders}
+              </span>
+            )}
+            <button
+              className={`stat-toggle-btn${showStatusPanel ? ' active' : ''}`}
+              onClick={onToggleStatusPanel}
+              title="Download status"
+            >
+              <svg viewBox="0 0 24 24" width="13" height="13" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ display: 'block' }}>
+                <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" fill="none"/>
+                <ellipse cx="12" cy="12" rx="3.5" ry="9" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+                <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="1.5"/>
+                <line x1="5" y1="7.5" x2="19" y2="7.5" stroke="currentColor" strokeWidth="1.3"/>
+                <line x1="5" y1="16.5" x2="19" y2="16.5" stroke="currentColor" strokeWidth="1.3"/>
+              </svg>
+            </button>
+            <button
+              className={`cc-toggle-btn${showSubPanel ? ' active' : ''}`}
+              onClick={onToggleSubPanel}
+              title="Subtitles / Captions"
+            >
+              CC
+              {subtitleTrackCount > 0 && (
+                <span className="cc-track-count">{subtitleTrackCount}</span>
+              )}
+            </button>
+          </div>
+        </div>,
+        playerEl
+      )}
       {playerEl && skipState.left && createPortal(
         <NetflixSkipOverlay side="left" seconds={skipState.left.seconds} animKey={skipState.left.key} onHidden={() => setSkipState(s => ({ ...s, left: null }))} />,
         playerEl

@@ -28,6 +28,7 @@ export interface RemuxStartResponse {
 export interface ActivePlayer {
   infoHash: string;
   fileId: string;
+  fileName: string;
   mimeType: string;
   isMkv: boolean;
   streamUrl: string; // remux base URL for MKV; empty for non-MKV

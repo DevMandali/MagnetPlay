@@ -9,6 +9,7 @@ import org.springframework.boot.test.autoconfigure.web.reactive.WebFluxTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -41,9 +42,9 @@ class TorrentHLSControllerTest {
                 .expectStatus().isOk()
                 .expectBody(HLSStartResponse.class)
                 .value(resp -> {
-                    assert resp.manifestUrl().contains("playlist.m3u8");
-                    assert resp.success();
-                    assert resp.durationSec() == 7243.0;
+                    assertThat(resp.manifestUrl()).contains("playlist.m3u8");
+                    assertThat(resp.success()).isTrue();
+                    assertThat(resp.durationSec()).isEqualTo(7243.0);
                 });
     }
 

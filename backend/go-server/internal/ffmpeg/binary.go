@@ -183,7 +183,10 @@ func downloadFFmpeg(binDir string) error {
 }
 
 func fetchLatestRelease() (*githubRelease, error) {
-	req, _ := http.NewRequest("GET", btbnReleasesURL, nil)
+	req, err := http.NewRequest("GET", btbnReleasesURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("User-Agent", "MagnetPlay/1.0")
 	resp, err := apiClient.Do(req)

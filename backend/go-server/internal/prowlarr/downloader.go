@@ -14,6 +14,7 @@ import (
 )
 
 const githubReleasesURL = "https://api.github.com/repos/Prowlarr/Prowlarr/releases/latest"
+const maxFileSize = 500 * 1024 * 1024 // 500MB per file
 
 var (
 	apiClient = &http.Client{Timeout: 30 * time.Second}
@@ -182,7 +183,7 @@ func extractZip(src, dest string) error {
 			out.Close()
 			return err
 		}
-		_, err = io.Copy(out, rc)
+		_, err = io.Copy(out, io.LimitReader(rc, maxFileSize))
 		rc.Close()
 		out.Close()
 		if err != nil {

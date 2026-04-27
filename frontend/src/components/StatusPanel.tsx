@@ -35,9 +35,13 @@ export default function StatusPanel({ infoHash, fileId }: StatusPanelProps) {
         if (res.ok && !cancelled) {
           setStats(await res.json());
           setLoading(false);
+        } else if (!cancelled) {
+          // HTTP error — still mark as not loading so UI doesn't freeze
+          setLoading(false);
         }
       } catch {
         // network error — retain last known stats
+        setLoading(false);
       }
     };
 

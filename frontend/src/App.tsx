@@ -7,12 +7,6 @@ import VideoPlayer from './components/VideoPlayer';
 import { TorrentsPage } from './components/TorrentsPage';
 import SearchPanel from './components/SearchPanel';
 
-const MIME_LABELS: Record<string, string> = {
-  'video/mp4': 'MP4',
-  'video/webm': 'WebM',
-  'application/x-mpegURL': 'HLS',
-};
-
 const MOOV_BADGE: Record<string, { cls: string; icon: string; spin: boolean; label: string } | null> = {
   idle:     null,
   checking: { cls: 'badge-muted', icon: '↻', spin: true,  label: 'Probing moov'           },
@@ -46,6 +40,7 @@ export default function App() {
   const [peerStats, setPeerStats] = useState<Pick<TorrentFileStats, 'seeders' | 'peers' | 'trackers'> | null>(null);
   const [subFontSize, setSubFontSize] = useState(100);
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([]);
+  const [streamLoading, setStreamLoading] = useState(false);
   const blobUrls = useRef<Record<string, string>>({});
 
   // Live subtitle font-size injection
@@ -102,6 +97,7 @@ export default function App() {
     setActive(null);
     setError(null);
     setMoovStatus('idle');
+    setStreamLoading(false);
     setShowSubPanel(false);
     setShowStatusPanel(false);
     Object.values(blobUrls.current).forEach(u => URL.revokeObjectURL(u));
@@ -168,6 +164,8 @@ export default function App() {
     const isMkv = draft.fileName.toLowerCase().endsWith('.mkv');
 
     if (isMkv) {
+      // streamLoading only covers the MKV remux start — non-MKV paths are synchronous setActive calls.
+      setStreamLoading(true);
       try {
         const res = await fetch(
           `/v1/torrent/remux/${draft.infoHash}/start?fileId=${encodeURIComponent(draft.fileId)}&t=0`,
@@ -179,6 +177,7 @@ export default function App() {
         setActive({
           infoHash: draft.infoHash,
           fileId: draft.fileId,
+          fileName: draft.fileName,
           mimeType: 'video/mp4',
           isMkv: true,
           streamUrl: data.manifestUrl,
@@ -187,11 +186,14 @@ export default function App() {
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to start remux stream');
+      } finally {
+        setStreamLoading(false);
       }
     } else {
       setActive({
         infoHash: draft.infoHash,
         fileId: draft.fileId,
+        fileName: draft.fileName,
         mimeType: draft.mimeType,
         isMkv: false,
         streamUrl: '',
@@ -396,7 +398,10 @@ export default function App() {
                   id="fileSelect"
                   className="file-select"
                   value={draft.fileId}
-                  onChange={handleChange('fileId')}
+                  onChange={(e) => {
+                    const selected = torrentFiles.find(f => f.id === e.target.value);
+                    setDraft(d => ({ ...d, fileId: e.target.value, fileName: selected?.name ?? d.fileName }));
+                  }}
                 >
                   {torrentFiles.map(f => (
                     <option key={f.id} value={f.id}>
@@ -423,11 +428,15 @@ export default function App() {
               </div>
             </div>
             <div className="form-actions">
-              <button className="btn btn-primary" onClick={handlePlay}>▶ Load Stream</button>
+              <button className="btn btn-primary" onClick={handlePlay} disabled={streamLoading}>
+                {streamLoading
+                  ? <><span className="badge-spin" style={{ display: 'inline-block' }}>↻</span>&nbsp;Starting…</>
+                  : '▶ Load Stream'}
+              </button>
               <button className="btn-back" onClick={handleFullReset}>← Back</button>
               {active && <button className="btn btn-ghost" onClick={handleReset}>✕ Clear</button>}
             </div>
-            {error && <div className="error-box"><span>⚠</span>{error}</div>}
+            {error && <div className="error-box"><span>⚠</span>{error}<button onClick={() => setError(null)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#ff8080', cursor: 'pointer', fontSize: 14, lineHeight: 1 }}>✕</button></div>}
           </div>
         </div>
           </>
@@ -435,53 +444,14 @@ export default function App() {
       </div>
 
       {/* ── Player ── */}
-      {active ? (
+      {streamLoading && !active ? (
+        <div className="stream-loading-card">
+          <div className="fetch-spinner" />
+          <span className="fetch-label">Starting MKV stream…</span>
+          <span className="fetch-magnet-preview">{draft.fileName}</span>
+        </div>
+      ) : active ? (
         <div className="player-card">
-          <div className="player-bar">
-            <span className="live-dot" />
-            <span className="player-bar-title">{active.fileId || active.infoHash}</span>
-            <div className="player-bar-badges">
-              {moovBadge && (
-                <span className={`badge ${moovBadge.cls}`} title={moovBadge.label}>
-                  <span className={moovBadge.spin ? 'badge-spin' : ''}>{moovBadge.icon}</span>
-                  &nbsp;{moovBadge.label}
-                </span>
-              )}
-              <span className="badge badge-mime">{MIME_LABELS[active.mimeType] ?? active.mimeType}</span>
-              {peerStats !== null && (
-                <span
-                  className={`badge ${peerStats.seeders > 0 ? 'badge-ok' : 'badge-muted'}`}
-                  title={`${peerStats.peers} active peers · ${peerStats.trackers} trackers`}
-                >
-                  ⇅ {peerStats.seeders}
-                </span>
-              )}
-              <button
-                className={`stat-toggle-btn${showStatusPanel ? ' active' : ''}`}
-                onClick={() => setShowStatusPanel(v => !v)}
-                title="Download status"
-              >
-                <svg viewBox="0 0 24 24" width="13" height="13" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style={{ display: 'block' }}>
-                  <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" fill="none"/>
-                  <ellipse cx="12" cy="12" rx="3.5" ry="9" stroke="currentColor" strokeWidth="1.5" fill="none"/>
-                  <line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" strokeWidth="1.5"/>
-                  <line x1="5" y1="7.5" x2="19" y2="7.5" stroke="currentColor" strokeWidth="1.3"/>
-                  <line x1="5" y1="16.5" x2="19" y2="16.5" stroke="currentColor" strokeWidth="1.3"/>
-                </svg>
-              </button>
-              <button
-                className={`cc-toggle-btn${showSubPanel ? ' active' : ''}`}
-                onClick={() => setShowSubPanel(v => !v)}
-                title="Subtitles / Captions"
-              >
-                CC
-                {subtitleTracks.length > 0 && (
-                  <span className="cc-track-count">{subtitleTracks.length}</span>
-                )}
-              </button>
-            </div>
-          </div>
-
           {showStatusPanel && active && (
             <StatusPanel infoHash={active.infoHash} fileId={active.fileId} />
           )}
@@ -516,12 +486,20 @@ export default function App() {
             key={`${active.infoHash}::${active.fileId}`}
             infoHash={active.infoHash}
             fileId={active.fileId}
+            fileName={active.fileName}
             mimeType={active.mimeType}
             isMkv={active.isMkv}
             streamUrl={active.streamUrl}
             durationSec={active.durationSec}
             audioTracks={active.audioTracks}
             subtitleTracks={subtitleTracks}
+            moovBadge={moovBadge}
+            peerStats={peerStats}
+            showStatusPanel={showStatusPanel}
+            onToggleStatusPanel={() => setShowStatusPanel(v => !v)}
+            showSubPanel={showSubPanel}
+            onToggleSubPanel={() => setShowSubPanel(v => !v)}
+            subtitleTrackCount={subtitleTracks.length}
             onError={handleError}
             onMoovStatus={setMoovStatus}
           />
@@ -532,8 +510,8 @@ export default function App() {
               <span className="meta-val">{active.infoHash}</span>
             </div>
             <div className="meta-item">
-              <span className="meta-key">File Id</span>
-              <span className="meta-val">{active.fileId}</span>
+              <span className="meta-key">File</span>
+              <span className="meta-val">{active.fileName || active.fileId}</span>
             </div>
             <div className="meta-item" style={{ maxWidth: 340 }}>
               <span className="meta-key">Stream URL</span>

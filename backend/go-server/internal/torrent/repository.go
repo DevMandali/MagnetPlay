@@ -33,8 +33,13 @@ type TorrentInfo struct {
 func (ti *TorrentInfo) Torrent() *lt.Torrent { return ti.torrent }
 
 // Files returns a snapshot copy of the file map (safe for iteration outside lock).
-func (ti *TorrentInfo) Files() map[string]*lt.File { return ti.files }
-
+func (ti *TorrentInfo) Files() map[string]*lt.File {
+	cp := make(map[string]*lt.File, len(ti.files))
+	for k, v := range ti.files {
+		cp[k] = v
+	}
+	return cp
+}
 func NewRepository(client *lt.Client, dataDir string, metadataTimeout time.Duration) *Repository {
 	return &Repository{
 		client:          client,

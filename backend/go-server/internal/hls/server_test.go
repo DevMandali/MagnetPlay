@@ -48,7 +48,7 @@ func TestRemuxRoute_OptionsPreflightOK(t *testing.T) {
 	}
 }
 
-func TestRemuxRoute_BadFileId(t *testing.T) {
+func TestRemuxRoute_BadPath(t *testing.T) {
 	h := hls.NewRemuxHandler("ffmpeg", "", "http://localhost:8091")
 	srv := hls.NewHLSServer(8091, nil, h)
 	handler := srv.Handler()
@@ -58,6 +58,6 @@ func TestRemuxRoute_BadFileId(t *testing.T) {
 	handler.ServeHTTP(w, req)
 
 	if w.Code != http.StatusBadRequest {
-		t.Fatalf("expected 400 for bad base64 fileId, got %d", w.Code)
+		t.Fatalf("expected 400 for bad base64 path, got %d", w.Code)
 	}
 }

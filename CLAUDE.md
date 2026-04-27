@@ -26,8 +26,7 @@ Peer Network (DHT + Trackers)
 - File IDs are `{infoHash}:{fileIndex}` (e.g. `abc123:0`), generated in `go-server/internal/torrent/mapper.go`.
 - gRPC `StreamFile` is server-side streaming: Go pushes 256KB `FileChunk` messages; Spring wraps them as a reactive `Flux<DataBuffer>`.
 - Piece prioritization at streaming start: first 5 pieces (moov atom), last 5 pieces (seek metadata), then the requested range — see `service.go:prioritize()`.
-- The frontend is a **Vite + React 18 + TypeScript** app (`frontend/src/`). Entry: `frontend/src/main.tsx`. Build: `cd frontend && npm run dev`. Components: `VideoPlayer.tsx`, `SubtitlePanel.tsx`, `NetflixSkipOverlay.tsx`. Types: `frontend/src/types/index.ts`.
-
+- The frontend is a **Vite + React 18 + TypeScript** app (`frontend/src/`). Entry: `frontend/src/main.tsx`. Dev server: `cd frontend && npm run dev`. Components: `VideoPlayer.tsx`, `SubtitlePanel.tsx`, `NetflixSkipOverlay.tsx`. Types: `frontend/src/types/index.ts`.
 ## Shared Proto Contract
 
 The gRPC API is defined in `backend/proto/torrent.proto` and used by both services. When you change the proto, regenerate code for both:

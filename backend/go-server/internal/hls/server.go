@@ -147,7 +147,9 @@ func (s *HLSServer) serveRawFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Prioritize the pieces that overlap the requested range to ensure FFmpeg gets the data as quickly as possible.
-	s.filePrioritizer(infoHash, fileId, start, end)
+	if s.filePrioritizer != nil {
+		s.filePrioritizer(infoHash, fileId, start, end)
+	}
 
 	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, size))
 	w.Header().Set("Content-Length", strconv.FormatInt(contentLen, 10))

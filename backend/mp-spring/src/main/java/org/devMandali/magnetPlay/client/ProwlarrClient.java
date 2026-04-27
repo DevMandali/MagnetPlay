@@ -6,6 +6,7 @@ import org.devMandali.magnetPlay.model.SearchResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -30,6 +31,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import reactor.netty.http.client.HttpClient;
+import java.time.Duration;
 
 @Component
 public class ProwlarrClient {
@@ -72,10 +75,13 @@ public class ProwlarrClient {
     private final WebClient webClient;
 
     public ProwlarrClient(WebClient.Builder builder) {
+        HttpClient httpClient = HttpClient.create()
+            .responseTimeout(Duration.ofSeconds(30));
         this.webClient = builder
             .exchangeStrategies(ExchangeStrategies.builder()
                 .codecs(c -> c.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
                 .build())
+            .clientConnector(new ReactorClientHttpConnector(httpClient))
             .build();
     }
 
@@ -184,6 +190,7 @@ public class ProwlarrClient {
             .uri(url)
             .retrieve()
             .bodyToMono(String.class)
+            .timeout(Duration.ofSeconds(30))
             .map(xml -> parseTorznabXml(xml, indexerName))
             .onErrorResume(e -> {
                 log.warn("Indexer {} ({}) search failed: {}", indexerId, indexerName, e.getMessage());

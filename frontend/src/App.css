@@ -79,11 +79,7 @@ select option { background: var(--bg); }
 
 /* ── Player card ────────────────────────────── */
 .player-card { width: 100%; max-width: 860px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
-.player-bar { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-.live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; animation: blink 1.4s ease-in-out infinite; }
 @keyframes blink { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:.3; transform:scale(.7); } }
-.player-bar-title { font-family: var(--mono); font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; flex: 1; }
-.player-bar-badges { display: flex; gap: 6px; margin-left: auto; align-items: center; }
 .badge { font-family: var(--mono); font-size: 9px; letter-spacing: 2px; padding: 2px 8px; border-radius: 3px; text-transform: uppercase; border: 1px solid; flex-shrink: 0; }
 .badge-mime  { color: var(--accent2); border-color: var(--accent2); }
 .badge-ok    { color: var(--ok);      border-color: var(--ok);      }
@@ -176,6 +172,16 @@ select option { background: var(--bg); }
 /* ── Video wrapper ──────────────────────────── */
 .video-player-wrapper { position: relative; background: #000; -webkit-user-drag: none; overflow: hidden; }
 
+/* ── Netflix top overlay ────────────────────── */
+.nf-top-overlay { position: absolute; top: 0; left: 0; right: 0; z-index: 5; padding: 16px 20px 48px; background: linear-gradient(to bottom, rgba(0,0,0,0.78), transparent); display: flex; align-items: flex-start; justify-content: space-between; pointer-events: none; transition: opacity 0.35s ease; }
+.nf-top-left { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
+.nf-top-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; pointer-events: auto; }
+.nf-live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex-shrink: 0; animation: blink 1.4s ease-in-out infinite; }
+.vjs-paused .nf-live-dot { animation-play-state: paused; opacity: 0.3; }
+.nf-title { font-family: var(--mono); font-size: 11px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 400px; }
+/* Syncs overlay visibility with the video.js control bar — vjs-user-inactive is set by video.js on the player root element */
+.vjs-user-inactive .nf-top-overlay { opacity: 0; pointer-events: none; }
+
 /* ── Subtitle / caption rendering ──────────── */
 ::cue { background-color: rgba(0,0,0,.82); color: #fff; font-family: 'DM Sans', sans-serif; font-size: 1em; font-weight: 500; line-height: 1.55; border-radius: 3px; padding: 1px 4px; }
 .video-js .vjs-text-track-display { pointer-events: none; bottom: 3em !important; }
@@ -186,12 +192,12 @@ select option { background: var(--bg); }
 .video-js { width: 100% !important; font-family: var(--sans) !important; }
 .vjs-big-play-button { background: rgba(230,57,70,.85) !important; border: 2px solid rgba(255,255,255,.25) !important; border-radius: 50% !important; width: 70px !important; height: 70px !important; line-height: 70px !important; top: 50% !important; left: 50% !important; transform: translate(-50%,-50%) !important; margin: 0 !important; transition: transform .2s, background .2s !important; }
 .vjs-big-play-button:hover { background: var(--accent) !important; transform: translate(-50%,-50%) scale(1.09) !important; }
-.vjs-control-bar { background: rgba(10,10,15,.92) !important; z-index: 2; }
+.vjs-control-bar { background: linear-gradient(to top, rgba(0,0,0,0.92), transparent) !important; z-index: 2; }
 .vjs-play-progress, .vjs-volume-level { background: var(--accent) !important; }
 .vjs-load-progress { background: rgba(230,57,70,.25) !important; }
 
 /* ── Stats button in vjs control bar ───────── */
-.video-js .vjs-stats-btn { position: relative !important; overflow: visible !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 2.6em !important; opacity: .85; transition: opacity .15s !important; }
+.video-js .vjs-stats-btn { position: relative !important; overflow: visible !important; cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 2.6em !important; height: 3em !important; opacity: .85; transition: opacity .15s !important; }
 .video-js .vjs-stats-btn:hover { opacity: 1 !important; }
 .video-js .vjs-stats-btn .vjs-icon-placeholder::before { content: '' !important; }
 .video-js .vjs-stats-btn svg { display: block; pointer-events: none; }
@@ -210,7 +216,7 @@ select option { background: var(--bg); }
 .vsp-loading { font-family: 'Space Mono',monospace; font-size: 9px; color: #5a5a72; }
 
 /* ── Skip buttons ───────────────────────────── */
-.vjs-skip-btn { cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 2.6em !important; opacity: .85; transition: opacity .15s, transform .12s !important; }
+.vjs-skip-btn { cursor: pointer !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 2.6em !important; height: 3em !important; opacity: .85; transition: opacity .15s, transform .12s !important; }
 .vjs-skip-btn:hover { opacity: 1 !important; transform: scale(1.15) !important; }
 .vjs-skip-btn:active { transform: scale(0.96) !important; }
 .vjs-skip-btn .vjs-icon-placeholder::before { content: '' !important; }
@@ -273,6 +279,9 @@ select option { background: var(--bg); }
 .fetch-label { font-family: var(--mono); font-size: 10px; letter-spacing: 2.5px; text-transform: uppercase; color: var(--muted); }
 .fetch-magnet-preview { font-family: var(--mono); font-size: 9px; color: var(--muted); opacity: 0.6; max-width: 340px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
+/* ── Stream loading card ────────────────────── */
+.stream-loading-card { width: 100%; max-width: 860px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 60px 20px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+
 /* ── File select ─────────────────────────────── */
 .file-select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; color: var(--text); font-family: var(--mono); font-size: 11px; outline: none; transition: border-color 0.2s; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235a5a72' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
 .file-select:focus { border-color: var(--accent); }
@@ -296,7 +305,7 @@ select option { background: var(--bg); }
 
 @media (max-width: 600px) {
   .form-grid { grid-template-columns: 1fr; }
-  .player-bar-title { max-width: 200px; }
   .subtitle-upload-row { flex-wrap: wrap; }
   .subtitle-formats { display: none; }
 }
+

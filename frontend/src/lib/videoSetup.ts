@@ -67,6 +67,7 @@ export function registerStatsButton(): void {
       if (!this.popup) return;
       this.popup.style.display = 'block';
       this.doPoll();
+      if (this.pollInterval) clearInterval(this.pollInterval);
       this.pollInterval = setInterval(() => this.doPoll(), 2000);
     }
 
@@ -165,10 +166,22 @@ export function registerSkipButtons(): void {
     handleClick(e: any) {
       super.handleClick(e);
       const p = this.player();
-      const dur = isFinite(p.duration() ?? Infinity) ? (p.duration() ?? Infinity) : Infinity;
-      const cur = p.currentTime() ?? 0;
-      // this.seconds is signed (-10 for back, +10 for forward)
-      p.currentTime(Math.max(0, Math.min(dur, cur + this.seconds)));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mkvDur: number = (p as any)._mpDuration ?? 0;
+      if (mkvDur > 0) {
+        // MKV path: raw currentTime starts from 0 after each seek; absolute position = currentTime + _mpSeekOffset.
+        // Must set _mpPendingSeek before calling currentTime() so the 'seeking' handler reads the right target.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const offset: number = (p as any)._mpSeekOffset ?? 0;
+        const absoluteNow = (p.currentTime() ?? 0) + offset;
+        const target = Math.max(0, Math.min(mkvDur, absoluteNow + this.seconds));
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (p as any)._mpPendingSeek = target;
+        p.currentTime(target);
+      } else {
+        const dur = isFinite(p.duration() ?? Infinity) ? (p.duration() ?? Infinity) : Infinity;
+        p.currentTime(Math.max(0, Math.min(dur, (p.currentTime() ?? 0) + this.seconds)));
+      }
       p.trigger({ type: 'mp-skip', direction: this.isBack ? 'left' : 'right', seconds: Math.abs(this.seconds) });
     }
 

@@ -50,7 +50,7 @@ func TestBuildRemuxArgs_SeekNonZero(t *testing.T) {
 		t.Fatal("expected -ss for seekSec=600")
 	}
 	if ssIdx+1 >= len(args) || args[ssIdx+1] != "600.000" {
-		t.Fatalf("expected -ss 600.000, got %v", args[ssIdx:ssIdx+2])
+		t.Fatalf("expected -ss 600.000, got %v", args[ssIdx:])
 	}
 
 	iIdx := -1

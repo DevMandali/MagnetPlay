@@ -213,8 +213,7 @@ func (s *TorrentService) StreamFile(req *pb.StreamRequest, stream pb.TorrentServ
 
 	// ── Prioritize pieces for requested byte range ─────────────────────────────
 	log.Println("[PRIORITY] prioritizing pieces for requested byte range...")
-	Prioritize(t, f, req.GetStartByte(), req.GetEndByte())
-
+	Prioritize(t, f, startByte, endByte)
 	log.Printf("streaming %s | range [%d, %d] | total %d bytes",
 		f.DisplayPath(), startByte, endByte, f.Length())
 

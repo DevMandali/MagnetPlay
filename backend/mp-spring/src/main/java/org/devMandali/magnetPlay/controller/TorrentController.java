@@ -228,9 +228,10 @@ public class TorrentController {
         String forwarded = request.getHeaders().getFirst("X-Forwarded-For");
         if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
         var addr = request.getRemoteAddress();
-        return addr != null ? addr.getAddress().getHostAddress() : "unknown";
+        if (addr == null) return "unknown";
+        var inetAddr = addr.getAddress();
+        return inetAddr != null ? inetAddr.getHostAddress() : addr.getHostString();
     }
-
     @PostMapping("/remux/{infoHash}/start")
     public Mono<ResponseEntity<HLSStartResponse>> startRemux(
             @PathVariable String infoHash,

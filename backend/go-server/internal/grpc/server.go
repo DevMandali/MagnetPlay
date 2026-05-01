@@ -54,13 +54,16 @@ func StartServer(cfg config.Config) {
 	if err != nil {
 		log.Fatalf("Failed to create torrent client: %v", err)
 	}
-	defer func() {
+
+	repo := torrent.NewRepository(client, cfg.DataDir, cfg.MetadataTimeout)
+
+	defer repo.CleanupDataDir(cfg.DataDir)   // registered first → runs LAST (after client.Close)
+
+	defer func() {                            // registered second → runs 2nd-to-last
 		if err := client.Close(); err != nil {
 			log.Printf("Error closing torrent client: %v", err)
 		}
 	}()
-
-	repo := torrent.NewRepository(client, cfg.DataDir, cfg.MetadataTimeout)
 
 	// fileOpener serves torrent file bytes over HTTP with Range support.
 	// FFmpeg uses this to seek directly to any byte position without reading
@@ -96,7 +99,8 @@ func StartServer(cfg config.Config) {
 	hlsFileBaseURL := fmt.Sprintf("http://localhost:%d/rawfile", cfg.HLSPort)
 
 	remuxHandler := hls.NewRemuxHandler(ffmpegPath, hlsFileBaseURL, hlsBaseURL)
-	hlsSrv := hls.NewHLSServer(cfg.HLSPort, fileOpener, filePrioritizer, remuxHandler)
+	subtitleHandler := hls.NewSubtitleHandler(ffmpegPath, hlsFileBaseURL)
+	hlsSrv := hls.NewHLSServer(cfg.HLSPort, fileOpener, filePrioritizer, remuxHandler, subtitleHandler)
 
 	go func() {
 		if err := hlsSrv.Start(); err != nil {
@@ -123,6 +127,6 @@ func StartServer(cfg config.Config) {
 	<-stop
 	log.Println("Shutting down...")
 	remuxHandler.StopAll()
-	repo.Clearup()
 	grpcServer.GracefulStop()
+	repo.Clearup()
 }

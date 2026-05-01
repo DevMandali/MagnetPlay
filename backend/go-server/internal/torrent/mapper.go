@@ -13,52 +13,63 @@ import (
 	lt "github.com/anacrolix/torrent"
 )
 
+var subtitleExts = map[string]bool{
+	".srt": true, ".vtt": true, ".ass": true, ".ssa": true, ".sub": true,
+}
+
 func toFileInfoList(infoHash string, tFiles []*lt.File, repo *Repository) []*pb.FileInfo {
 	files := make([]*pb.FileInfo, 0, len(tFiles))
 
 	otherVideoTypes := []string{
-		"application/octet-stream",      //often used for video files without a recognized extension
-		"application/ogg",               //legacy or highly specialized formats
-		"application/mp4",               //legacy or highly specialized formats
-		"application/x-mpegURL",         //Streaming Manifests
-		"application/vnd.apple.mpegurl", //Streaming Manifests
+		"application/octet-stream",
+		"application/ogg",
+		"application/mp4",
+		"application/x-mpegURL",
+		"application/vnd.apple.mpegurl",
 	}
 
 	for i, f := range tFiles {
-		// Get extension (e.g., .mp4, .mkv)
-		ext := filepath.Ext(f.DisplayPath())
+		ext := strings.ToLower(filepath.Ext(f.DisplayPath()))
+
+		// Subtitle files — allow through with SUBTITLE tag
+		if subtitleExts[ext] {
+			fileId := fmt.Sprintf("%s:%d", infoHash, i)
+			if _, exists := repo.torrents[infoHash].files[fileId]; !exists {
+				repo.torrents[infoHash].files[fileId] = f
+			}
+			files = append(files, &pb.FileInfo{
+				Id:       fileId,
+				Name:     f.DisplayPath(),
+				Size:     f.Length(),
+				FileType: pb.FileType_SUBTITLE,
+			})
+			log.Printf("[mapper] subtitle file: %s ext=%s", f.DisplayPath(), ext)
+			continue
+		}
 
 		contentType := mime.TypeByExtension(ext)
-		// If the MIME type is empty, it means we couldn't determine the type based on the extension,
-		// we can log a warning and skip it
 		if contentType == "" {
-			f.SetPriority(lt.PiecePriorityNone) // Skip this file by setting its priority to none
-			log.Printf("Warning: Unknown MIME type for file %s, skipping", f.DisplayPath())
+			f.SetPriority(lt.PiecePriorityNone)
+			log.Printf("[mapper] unknown MIME type for %s, skipping", f.DisplayPath())
 			continue
 		}
 
-		// We want to filter out non-video files, we can do this by checking the MIME type of the file based on its extension,
-		// if it doesn't start with "video/" and it's not in our list of other video types, we skip it
 		if !strings.HasPrefix(contentType, "video/") && !slices.Contains(otherVideoTypes, contentType) {
-			f.SetPriority(lt.PiecePriorityNone) // Skip this file by setting its priority to none
-			log.Printf("Skipping and non-video file: %s, MIME type: %s", f.DisplayPath(), contentType)
+			f.SetPriority(lt.PiecePriorityNone)
+			log.Printf("[mapper] non-video file skipped: %s MIME=%s", f.DisplayPath(), contentType)
 			continue
 		}
-		log.Printf("File: %s, Extension: %s, Content-Type: %s", f.DisplayPath(), ext, contentType)
 
+		log.Printf("[mapper] video file: %s ext=%s MIME=%s", f.DisplayPath(), ext, contentType)
 		fileId := fmt.Sprintf("%s:%d", infoHash, i)
-		// We also want to ensure that we only add each file to the repository once,
-		// so we can check if the file ID already exists in the repository's torrent info before adding it.
-		// If it doesn't exist, we add it to the repository's torrent info
 		if _, exists := repo.torrents[infoHash].files[fileId]; !exists {
 			repo.torrents[infoHash].files[fileId] = f
 		}
-
-		// Finally, we create a FileInfo object for the file and add it to our list of files to return to the client
 		files = append(files, &pb.FileInfo{
-			Id:   fileId,
-			Name: f.DisplayPath(),
-			Size: f.Length(),
+			Id:       fileId,
+			Name:     f.DisplayPath(),
+			Size:     f.Length(),
+			FileType: pb.FileType_VIDEO,
 		})
 	}
 	return files

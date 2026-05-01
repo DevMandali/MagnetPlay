@@ -9,7 +9,7 @@ import (
 )
 
 func TestRawFileHandler_NotFound_NoOpener(t *testing.T) {
-	srv := hls.NewHLSServer(8091, nil, hls.NewRemuxHandler("ffmpeg", "", ""))
+	srv := hls.NewHLSServer(8091, nil, nil, hls.NewRemuxHandler("ffmpeg", "", ""), nil)
 	handler := srv.Handler()
 
 	req := httptest.NewRequest("GET", "/rawfile/abc123/dGVzdA", nil)
@@ -22,7 +22,7 @@ func TestRawFileHandler_NotFound_NoOpener(t *testing.T) {
 }
 
 func TestRawFileHandler_CORS(t *testing.T) {
-	srv := hls.NewHLSServer(8091, nil, hls.NewRemuxHandler("ffmpeg", "", ""))
+	srv := hls.NewHLSServer(8091, nil, nil, hls.NewRemuxHandler("ffmpeg", "", ""), nil)
 	handler := srv.Handler()
 
 	req := httptest.NewRequest("GET", "/rawfile/abc123/dGVzdA", nil)
@@ -36,7 +36,7 @@ func TestRawFileHandler_CORS(t *testing.T) {
 
 func TestRemuxRoute_OptionsPreflightOK(t *testing.T) {
 	h := hls.NewRemuxHandler("ffmpeg", "", "http://localhost:8091")
-	srv := hls.NewHLSServer(8091, nil, h)
+	srv := hls.NewHLSServer(8091, nil, nil, h, nil)
 	handler := srv.Handler()
 
 	req := httptest.NewRequest("OPTIONS", "/remux/abc123/dGVzdA", nil)
@@ -50,7 +50,7 @@ func TestRemuxRoute_OptionsPreflightOK(t *testing.T) {
 
 func TestRemuxRoute_BadPath(t *testing.T) {
 	h := hls.NewRemuxHandler("ffmpeg", "", "http://localhost:8091")
-	srv := hls.NewHLSServer(8091, nil, h)
+	srv := hls.NewHLSServer(8091, nil, nil, h, nil)
 	handler := srv.Handler()
 
 	req := httptest.NewRequest("GET", "/remux/abc123/not-valid-base64!!!", nil)

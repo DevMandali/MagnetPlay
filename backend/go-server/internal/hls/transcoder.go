@@ -1,6 +1,7 @@
 package hls
 
 import (
+	"bufio"
 	"context"
 	"encoding/base64"
 	"fmt"
@@ -130,12 +131,31 @@ func (h *RemuxHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	stderr, stderrErr := cmd.StderrPipe()
+
 	if err := cmd.Start(); err != nil {
 		log.Printf("[remux] ffmpeg start error: %v", err)
 		http.Error(w, "ffmpeg start failed", http.StatusInternalServerError)
 		return
 	}
 	log.Printf("[remux] ffmpeg spawned hash=%s fileId=%s seek=%.1fs", infoHash, fileId, seekSec)
+
+	if stderrErr == nil {
+		go func() {
+			scanner := bufio.NewScanner(stderr)
+			for scanner.Scan() {
+				line := scanner.Text()
+				lower := strings.ToLower(line)
+				if strings.Contains(lower, "error") ||
+					strings.Contains(lower, "warning") ||
+					strings.Contains(lower, "invalid") ||
+					strings.Contains(lower, "failed") ||
+					strings.Contains(lower, "no such") {
+					log.Printf("[ffmpeg-stderr hash=%s fileId=%s] %s", infoHash, fileId, line)
+				}
+			}
+		}()
+	}
 
 	w.Header().Set("Content-Type", "video/mp4")
 	w.Header().Set("Cache-Control", "no-cache, no-store")

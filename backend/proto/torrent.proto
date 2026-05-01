@@ -46,8 +46,9 @@ message FileInfoResponse {
   int64  total_size  = 3;
   string mime_type   = 4;
   bool   is_ready    = 5;
-  double               duration_sec  = 6;
-  repeated AudioTrack  audio_tracks  = 7;
+  double                    duration_sec    = 6;
+  repeated AudioTrack       audio_tracks    = 7;
+  repeated SubtitleTrackInfo subtitle_tracks = 8;
 }
 
 // ─── AddTorrent ────────────────────────────────────────────────────────────
@@ -63,10 +64,16 @@ enum TorrentStatus {
   NON_VIDEO_FILE = 3;
 }
 
+enum FileType {
+  VIDEO    = 0;
+  SUBTITLE = 1;
+}
+
 message FileInfo {
-  string id = 1;
-  string name = 2;
-  int64 size = 3;
+  string   id        = 1;
+  string   name      = 2;
+  int64    size      = 3;
+  FileType file_type = 4;
 }
 
 message TorrentResponse {
@@ -141,11 +148,18 @@ message PauseTorrentResponse { bool success = 1; string message = 2; }
 message ResumeTorrentRequest  { string info_hash = 1; }
 message ResumeTorrentResponse { bool success = 1; string message = 2; }
 
-message DeleteTorrentRequest  { string info_hash = 1; bool delete_files = 2; }
+message DeleteTorrentRequest  { string info_hash = 1; }
 message DeleteTorrentResponse { bool success = 1; string message = 2; }
 
 // ── HLS Streaming ────────────────────────────────────────────────────────────
 message AudioTrack {
+  int32  index    = 1;
+  string language = 2;
+  string codec    = 3;
+  string title    = 4;
+}
+
+message SubtitleTrackInfo {
   int32  index    = 1;
   string language = 2;
   string codec    = 3;
@@ -159,8 +173,9 @@ message HLSRequest {
 }
 
 message HLSResponse {
-  string               manifest_url  = 1;
-  bool                 success       = 2;
-  double               duration_sec  = 3;
-  repeated AudioTrack  audio_tracks  = 4;
+  string                    manifest_url    = 1;
+  bool                      success         = 2;
+  double                    duration_sec    = 3;
+  repeated AudioTrack       audio_tracks    = 4;
+  repeated SubtitleTrackInfo subtitle_tracks = 5;
 }

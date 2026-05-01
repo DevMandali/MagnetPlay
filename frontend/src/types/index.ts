@@ -2,9 +2,17 @@ export interface TorrentFile {
   id: string;
   name: string;
   sizeLabel: string;
+  fileType: 'VIDEO' | 'SUBTITLE';
 }
 
 export interface AudioTrack {
+  index: number;
+  language: string;
+  codec: string;
+  title: string;
+}
+
+export interface SubtitleTrackInfo {
   index: number;
   language: string;
   codec: string;
@@ -16,13 +24,15 @@ export interface HLSStartResponse {
   success: boolean;
   durationSec: number;
   audioTracks: AudioTrack[];
+  subtitleTracks: SubtitleTrackInfo[];
 }
 
 export interface RemuxStartResponse {
-  manifestUrl: string; // holds the remux base URL returned by /remux/{hash}/start
+  manifestUrl: string;
   success: boolean;
   durationSec: number;
   audioTracks: AudioTrack[];
+  subtitleTracks: SubtitleTrackInfo[];
 }
 
 export interface ActivePlayer {
@@ -31,9 +41,10 @@ export interface ActivePlayer {
   fileName: string;
   mimeType: string;
   isMkv: boolean;
-  streamUrl: string; // remux base URL for MKV; empty for non-MKV
+  streamUrl: string;
   durationSec: number;
   audioTracks: AudioTrack[];
+  embeddedSubtitles: SubtitleTrackInfo[];
 }
 
 export interface SubtitleTrack {

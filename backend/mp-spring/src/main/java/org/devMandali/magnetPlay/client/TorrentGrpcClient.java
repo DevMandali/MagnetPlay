@@ -127,12 +127,11 @@ public class TorrentGrpcClient {
 
     // ─── DeleteTorrent ───────────────────────────────────────────────────────
 
-    public Mono<DeleteTorrentResponse> deleteTorrent(String infoHash, boolean deleteFiles) {
+    public Mono<DeleteTorrentResponse> deleteTorrent(String infoHash) {
         return Mono.fromCallable(() -> torrentServiceBlockingStub
                 .withDeadlineAfter(10, TimeUnit.SECONDS)
                 .deleteTorrent(DeleteTorrentRequest.newBuilder()
                         .setInfoHash(infoHash)
-                        .setDeleteFiles(deleteFiles)
                         .build()))
                 .subscribeOn(grpcScheduler)
                 .doOnError(e -> logger.error("deleteTorrent gRPC error for {}", infoHash, e));

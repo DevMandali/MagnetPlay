@@ -22,8 +22,7 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.LinkedHashMap;
-
+import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -40,12 +39,14 @@ public class TorrentService {
             grpcResponse.getTorrentId(),
             grpcResponse.getName(),
             grpcResponse.getStatus().name(),
-            grpcResponse.getFilesList().stream().collect(Collectors.toMap(
-                    FileInfo::getId,
-                    file -> String.format("%s => %s", file.getName(), ByteUtil.formatSize(file.getSize())),
-                    (existing, replacement) -> existing,
-                    LinkedHashMap::new
-            ))
+            grpcResponse.getFilesList().stream()
+                .map(file -> new TorrentAddResponse.FileItem(
+                    file.getId(),
+                    file.getName(),
+                    ByteUtil.formatSize(file.getSize()),
+                    file.getFileType().name()
+                ))
+                .collect(Collectors.toList())
     );
 
     public Mono<TorrentAddResponse> addTorrentToSession(TorrentAddRequest request) {
@@ -129,8 +130,8 @@ public class TorrentService {
                 .doOnError(e -> logger.error("resumeTorrent error for {}", infoHash, e));
     }
 
-    public Mono<String> deleteTorrent(String infoHash, boolean deleteFiles) {
-        return grpcClient.deleteTorrent(infoHash, deleteFiles)
+    public Mono<String> deleteTorrent(String infoHash) {
+        return grpcClient.deleteTorrent(infoHash)
                 .map(r -> r.getMessage())
                 .doOnError(e -> logger.error("deleteTorrent error for {}", infoHash, e));
     }
@@ -155,6 +156,10 @@ public class TorrentService {
                         r.getAudioTracksList().stream()
                                 .map(t -> new HLSStartResponse.AudioTrackDto(
                                         t.getIndex(), t.getLanguage(), t.getCodec(), t.getTitle()))
+                                .toList(),
+                        r.getSubtitleTracksList().stream()
+                                .map(t -> new HLSStartResponse.SubtitleTrackDto(
+                                        t.getIndex(), t.getLanguage(), t.getCodec(), t.getTitle()))
                                 .toList()
                 ))
                 .doOnError(e -> logger.error("startHLS error for {}/{}", infoHash, fileId, e));
@@ -168,6 +173,10 @@ public class TorrentService {
                         r.getDurationSec(),
                         r.getAudioTracksList().stream()
                                 .map(t -> new HLSStartResponse.AudioTrackDto(
+                                        t.getIndex(), t.getLanguage(), t.getCodec(), t.getTitle()))
+                                .toList(),
+                        r.getSubtitleTracksList().stream()
+                                .map(t -> new HLSStartResponse.SubtitleTrackDto(
                                         t.getIndex(), t.getLanguage(), t.getCodec(), t.getTitle()))
                                 .toList()
                 ))

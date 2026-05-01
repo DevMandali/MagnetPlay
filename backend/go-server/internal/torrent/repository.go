@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -19,8 +20,6 @@ type Repository struct {
 	torrents        map[string]*TorrentInfo
 	mu              sync.RWMutex
 	metadataTimeout time.Duration
-	pendingDelete   []string // dirs that failed runtime delete; removed on shutdown
-	deleteMu        sync.Mutex
 }
 
 type TorrentInfo struct {
@@ -88,7 +87,6 @@ func (r *Repository) GetOrAdd(ctx context.Context, magnetURL string, infoHash st
 	// Double-check in case another goroutine added it while we were fetching metadata
 	if existingInfo, exists := r.torrents[key]; exists {
 		r.mu.Unlock()
-		t.Drop() // Drop duplicate
 		return existingInfo.torrent, nil
 	}
 	r.torrents[key] = &TorrentInfo{torrent: t, files: make(map[string]*lt.File)}
@@ -118,15 +116,6 @@ func (r *Repository) GetFile(infoHash, fileId string) (*lt.File, bool) {
 	return f, exists
 }
 
-// QueueDelete schedules a directory to be removed on shutdown, used when
-// runtime deletion fails due to Windows file handle locks on .part files.
-func (r *Repository) QueueDelete(dir string) {
-	r.deleteMu.Lock()
-	r.pendingDelete = append(r.pendingDelete, dir)
-	r.deleteMu.Unlock()
-	log.Printf("[delete] queued for shutdown cleanup: %s", dir)
-}
-
 func (r *Repository) Clearup() {
 	r.mu.Lock()
 	for key, tInfo := range r.torrents {
@@ -134,20 +123,19 @@ func (r *Repository) Clearup() {
 		delete(r.torrents, key)
 	}
 	r.mu.Unlock()
+}
 
-	// All torrents are now dropped — OS file handles on .part files are released.
-	// Safe to delete any dirs that failed during runtime.
-	r.deleteMu.Lock()
-	pending := r.pendingDelete
-	r.pendingDelete = nil
-	r.deleteMu.Unlock()
-
-	for _, dir := range pending {
-		log.Printf("[shutdown] removing deferred %s", dir)
-		if err := os.RemoveAll(dir); err != nil {
-			log.Printf("[shutdown] failed to remove %s: %v", dir, err)
-		} else {
-			log.Printf("[shutdown] removed %s", dir)
+func (r *Repository) CleanupDataDir(dataDir string) {
+	entries, err := os.ReadDir(dataDir)
+	if err != nil {
+		log.Printf("[shutdown] failed to read dataDir %s: %v", dataDir, err)
+		return
+	}
+	for _, entry := range entries {
+		path := filepath.Join(dataDir, entry.Name())
+		log.Printf("[shutdown] removing %s", path)
+		if err := os.RemoveAll(path); err != nil {
+			log.Printf("[shutdown] failed to remove %s: %v", path, err)
 		}
 	}
 }

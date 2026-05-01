@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"mime"
-	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -23,6 +22,31 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+var bitmapSubtitleCodecs = map[string]bool{
+	"hdmv_pgs_subtitle": true,
+	"dvb_subtitle":      true,
+	"dvb_teletext":      true,
+	"pgssub":            true,
+	"xsub":              true,
+}
+
+func toProtoSubtitleTracks(tracks []SubtitleTrack) []*pb.SubtitleTrackInfo {
+	result := make([]*pb.SubtitleTrackInfo, 0, len(tracks))
+	for _, t := range tracks {
+		if bitmapSubtitleCodecs[t.Codec] {
+			log.Printf("[subtitle] skipping bitmap codec=%s lang=%s", t.Codec, t.Language)
+			continue
+		}
+		result = append(result, &pb.SubtitleTrackInfo{
+			Index:    int32(t.Index),
+			Language: t.Language,
+			Codec:    t.Codec,
+			Title:    t.Title,
+		})
+	}
+	return result
+}
 
 const (
 	// chunkSize controls how many bytes are sent per gRPC message.
@@ -44,11 +68,19 @@ type probeResult struct {
 	AudioTracks []*pb.AudioTrack
 	VideoCodec  string // e.g. "h264", "hevc", "av1"
 	AudioCodec  string // first audio track codec, e.g. "aac", "eac3", "ac3"
+	Subtitles   []SubtitleTrack
 }
 
 // IsMKV returns true if the file path has a .mkv extension (case-insensitive).
 func IsMKV(path string) bool {
 	return strings.ToLower(filepath.Ext(path)) == ".mkv"
+}
+
+type SubtitleTrack struct {
+	Index    int
+	Language string
+	Codec    string
+	Title    string
 }
 
 type TorrentService struct {
@@ -85,13 +117,19 @@ func (s *TorrentService) AddTorrent(ctx context.Context, req *pb.TorrentRequest)
 		return &pb.TorrentResponse{Status: pb.TorrentStatus_NOT_FOUND}, nil
 	}
 
-	log.Printf("Torrent ready: %s", t.Info().Name)
-
 	info := t.Info()
 	if info == nil {
 		return nil, status.Error(codes.Unavailable, "") // TODO need to rectify more gracefully, maybe return an error instead of nil
 	}
+	log.Printf("Torrent ready: %s", info.Name)
 	infoHash := t.InfoHash().String()
+
+	var totalSize int64
+	for _, f := range t.Files() {
+		totalSize += f.Length()
+	}
+	log.Printf("[torrent] name=%s infoHash=%s files=%d totalSize=%d",
+		info.Name, infoHash, len(t.Files()), totalSize)
 
 	var fileInfo []*pb.FileInfo = toFileInfoList(infoHash, t.Files(), s.repo)
 
@@ -121,6 +159,12 @@ func (s *TorrentService) GetFileInfo(ctx context.Context, req *pb.FileInfoReques
 		return nil, status.Errorf(codes.NotFound, "file not found: %s", req.GetFileId())
 	}
 
+	// Prioritize this file for download since the client is requesting info about it -
+	// likely to stream soon. This helps ensure the file will be ready faster,
+	// especially for large multi-file torrents where pieces are shared across files.
+	f.Torrent().SetMaxEstablishedConns(80)
+	f.SetPriority(lt.PiecePriorityReadahead) // Optional: prioritize pieces for this file to speed up availability
+
 	mimeType := mime.TypeByExtension(filepath.Ext(f.DisplayPath()))
 	resp := &pb.FileInfoResponse{
 		FileName:  filepath.Base(f.DisplayPath()),
@@ -137,9 +181,11 @@ func (s *TorrentService) GetFileInfo(ctx context.Context, req *pb.FileInfoReques
 		if probe != nil {
 			resp.DurationSec = probe.DurationSec
 			resp.AudioTracks = probe.AudioTracks
-			log.Printf("[mkv] GetFileInfo: probe ok duration=%.1fs audio_tracks=%d", probe.DurationSec, len(probe.AudioTracks))
+			resp.SubtitleTracks = toProtoSubtitleTracks(probe.Subtitles)
+			log.Printf("[mkv] GetFileInfo: probe ok duration=%.1fs audio=%d subtitles=%d",
+				probe.DurationSec, len(probe.AudioTracks), len(resp.SubtitleTracks))
 		} else {
-			log.Printf("[mkv] GetFileInfo: probe returned nil (ffprobe unavailable or failed) — duration/audio will be unknown")
+			log.Printf("[mkv] GetFileInfo: probe nil — duration/audio/subtitles unknown")
 		}
 	}
 
@@ -404,44 +450,16 @@ func (s *TorrentService) ResumeTorrent(ctx context.Context, req *pb.ResumeTorren
 }
 
 func (s *TorrentService) DeleteTorrent(ctx context.Context, req *pb.DeleteTorrentRequest) (*pb.DeleteTorrentResponse, error) {
-	info, err := s.repo.GetTorrentInfo(req.GetInfoHash())
+	_, err := s.repo.GetTorrentInfo(req.GetInfoHash())
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "torrent not found: %s", req.GetInfoHash())
 	}
-	torrentName := info.Torrent().Name()
 	infoHash := req.GetInfoHash()
-	info.Torrent().Drop()
 	s.repo.Remove(infoHash)
 	s.trackerMu.Lock()
 	delete(s.speedTrackers, infoHash)
 	s.trackerMu.Unlock()
-	if req.GetDeleteFiles() {
-		// anacrolix stores files as <dataDir>/<torrent.Name()>/... using .part extension
-		// while downloading. Drop() signals goroutines to stop but on Windows the OS
-		// may not release file handles immediately — retry with backoff.
-		torrentDir, absErr := filepath.Abs(filepath.Join(s.repo.dataDir, torrentName))
-		if absErr != nil {
-			torrentDir = filepath.Join(s.repo.dataDir, torrentName)
-		}
-		log.Printf("[delete] removing files at %s", torrentDir)
-		var removeErr error
-		for attempt := 1; attempt <= 5; attempt++ {
-			removeErr = os.RemoveAll(torrentDir)
-			if removeErr == nil {
-				break
-			}
-			log.Printf("[delete] attempt %d failed: %v — retrying", attempt, removeErr)
-			time.Sleep(time.Duration(attempt) * 250 * time.Millisecond)
-		}
-		if removeErr != nil {
-			// Still locked (e.g. anacrolix .part writer on Windows). Queue for
-			// guaranteed cleanup when server shuts down and all handles are released.
-			s.repo.QueueDelete(torrentDir)
-		} else {
-			log.Printf("[delete] removed %s", torrentDir)
-		}
-	}
-	return &pb.DeleteTorrentResponse{Success: true, Message: "deleted"}, nil
+	return &pb.DeleteTorrentResponse{Success: true, Message: "removed from dashboard"}, nil
 }
 
 func (s *TorrentService) getOrProbe(infoHash, fileId string, _ *lt.Torrent, f *lt.File) *probeResult {
@@ -491,17 +509,30 @@ func runFFprobe(ffprobePath string, r io.Reader) *probeResult {
 		"pipe:0",
 	)
 	cmd.Stdin = r
+
+	var stderrBuf bytes.Buffer
+	cmd.Stderr = &stderrBuf
+
+	var outBuf bytes.Buffer
+	cmd.Stdout = &outBuf
+
 	log.Printf("[ffprobe] exec started (timeout=12s probesize=3MB)")
-	out, err := cmd.Output()
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		if ctx.Err() != nil {
 			log.Printf("[ffprobe] timed out after 12s")
 		} else {
 			log.Printf("[ffprobe] exec failed: %v", err)
 		}
+		if stderrBuf.Len() > 0 {
+			log.Printf("[ffprobe-stderr] %s", stderrBuf.String())
+		}
 		return nil
 	}
-	log.Printf("[ffprobe] exec ok output_bytes=%d", len(out))
+
+	if stderrBuf.Len() > 0 {
+		log.Printf("[ffprobe-stderr] %s", stderrBuf.String())
+	}
+	log.Printf("[ffprobe] exec ok output_bytes=%d", outBuf.Len())
 
 	var probe struct {
 		Streams []struct {
@@ -518,7 +549,7 @@ func runFFprobe(ffprobePath string, r io.Reader) *probeResult {
 			Duration string `json:"duration"`
 		} `json:"format"`
 	}
-	if err := json.Unmarshal(out, &probe); err != nil {
+	if err := json.Unmarshal(outBuf.Bytes(), &probe); err != nil {
 		log.Printf("[ffprobe] json parse error: %v", err)
 		return nil
 	}
@@ -542,13 +573,24 @@ func runFFprobe(ffprobePath string, r io.Reader) *probeResult {
 				Title:    s.Tags.Title,
 			})
 		}
+		if s.CodecType == "subtitle" {
+			result.Subtitles = append(result.Subtitles, SubtitleTrack{
+				Index:    s.Index,
+				Language: s.Tags.Language,
+				Codec:    s.CodecName,
+				Title:    s.Tags.Title,
+			})
+		}
 	}
 	if result.DurationSec == 0 {
 		if d, err := strconv.ParseFloat(probe.Format.Duration, 64); err == nil {
 			result.DurationSec = d
 		}
 	}
-	log.Printf("[ffprobe] codecs video=%s audio=%s", result.VideoCodec, result.AudioCodec)
+
+	log.Printf("[ffprobe] file=<stream> duration=%.1fs video=%s audio=%s audio_tracks=%d subtitles=%d",
+		result.DurationSec, result.VideoCodec, result.AudioCodec,
+		len(result.AudioTracks), len(result.Subtitles))
 	return result
 }
 
@@ -594,6 +636,10 @@ func (s *TorrentService) StartRemux(ctx context.Context, req *pb.HLSRequest) (*p
 	if probe != nil {
 		resp.DurationSec = probe.DurationSec
 		resp.AudioTracks = probe.AudioTracks
+		resp.SubtitleTracks = toProtoSubtitleTracks(probe.Subtitles)
+		log.Printf("[remux] StartRemux ok url=%s subtitles=%d", streamURL, len(resp.SubtitleTracks))
+	} else {
+		log.Printf("[remux] StartRemux ok url=%s (no probe)", streamURL)
 	}
 	return resp, nil
 }

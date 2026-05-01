@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { TorrentFile, ActivePlayer, SubtitleTrack, MoovStatus, FetchState, TorrentFileStats, RemuxStartResponse } from './types';
+import { TorrentFile, ActivePlayer, SubtitleTrack, SubtitleTrackInfo, MoovStatus, FetchState, TorrentFileStats, RemuxStartResponse } from './types';
 import { srtToVtt, readFileAsText } from './lib/utils';
 import SubtitlePanel from './components/SubtitlePanel';
 import StatusPanel from './components/StatusPanel';
@@ -42,6 +42,23 @@ export default function App() {
   const [subtitleTracks, setSubtitleTracks] = useState<SubtitleTrack[]>([]);
   const [streamLoading, setStreamLoading] = useState(false);
   const blobUrls = useRef<Record<string, string>>({});
+  const [torrentSubtitleFiles, setTorrentSubtitleFiles] = useState<TorrentFile[]>([]);
+
+  // Encodes a fileId to base64url (no padding) — matches Go's base64.RawURLEncoding
+  const encodeFileId = (fileId: string): string =>
+    btoa(fileId).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+
+  const fetchSubtitleBlob = async (url: string): Promise<string | null> => {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(30000) });
+      if (!res.ok) return null;
+      const text = await res.text();
+      const blob = new Blob([text], { type: 'text/vtt' });
+      return URL.createObjectURL(blob);
+    } catch {
+      return null;
+    }
+  };
 
   // Live subtitle font-size injection
   useEffect(() => {
@@ -112,6 +129,7 @@ export default function App() {
     setFetchState('idle');
     setFetchError(null);
     setTorrentFiles([]);
+    setTorrentSubtitleFiles([]);
     setInfoHash('');
     setDraft({ infoHash: '', fileId: '', mimeType: 'video/mp4', fileName: '' });
     setConfigCollapsed(false);
@@ -133,15 +151,20 @@ export default function App() {
       if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const data = await res.json();
       const hash = (data.torrentId as string) || '';
-      const rawFiles = (data.files && typeof data.files === 'object' ? data.files : {}) as Record<string, string>;
-      const files: TorrentFile[] = Object.entries(rawFiles).map(([id, label]) => {
-        const [namePart, sizePart] = label.split(' => ');
-        return { id, name: namePart.trim(), sizeLabel: (sizePart ?? '').trim() };
-      });
-      if (!files.length) throw new Error('No files found in torrent');
-      const firstVideo = files.find(f => /\.(mp4|mkv|avi|mov|webm|ts|m4v|flv)$/i.test(f.name)) ?? files[0];
+      const rawFiles = (data.files ?? []) as Array<{ id: string; name: string; sizeLabel: string; fileType: string }>;
+      const files: TorrentFile[] = rawFiles.map(f => ({
+        id: f.id,
+        name: f.name,
+        sizeLabel: f.sizeLabel ?? '',
+        fileType: f.fileType === 'SUBTITLE' ? 'SUBTITLE' : 'VIDEO',
+      }));
+      const videoFiles = files.filter(f => f.fileType === 'VIDEO');
+      const subtitleFiles = files.filter(f => f.fileType === 'SUBTITLE');
+      if (!videoFiles.length) throw new Error('No video files found in torrent');
+      const firstVideo = videoFiles.find(f => /\.(mp4|mkv|avi|mov|webm|ts|m4v|flv)$/i.test(f.name)) ?? videoFiles[0];
       setInfoHash(hash);
-      setTorrentFiles(files);
+      setTorrentFiles(videoFiles);
+      setTorrentSubtitleFiles(subtitleFiles);
       setDraft(d => ({ ...d, infoHash: hash, fileId: firstVideo.id, fileName: firstVideo.name }));
       setStep(2);
       setFetchState('idle');
@@ -164,7 +187,6 @@ export default function App() {
     const isMkv = draft.fileName.toLowerCase().endsWith('.mkv');
 
     if (isMkv) {
-      // streamLoading only covers the MKV remux start — non-MKV paths are synchronous setActive calls.
       setStreamLoading(true);
       try {
         const res = await fetch(
@@ -174,6 +196,7 @@ export default function App() {
         if (!res.ok) throw new Error(`Remux start failed: ${res.status}`);
         const data: RemuxStartResponse = await res.json();
         if (!data.success) throw new Error('Remux handler failed to start');
+
         setActive({
           infoHash: draft.infoHash,
           fileId: draft.fileId,
@@ -183,7 +206,42 @@ export default function App() {
           streamUrl: data.manifestUrl,
           durationSec: data.durationSec,
           audioTracks: data.audioTracks,
+          embeddedSubtitles: data.subtitleTracks ?? [],
         });
+
+        // Auto-populate embedded subtitle tracks from MKV probe
+        const embeddedTracks: SubtitleTrackInfo[] = data.subtitleTracks ?? [];
+        const b64FileId = encodeFileId(draft.fileId);
+        const embeddedSubBlobPromises = embeddedTracks.map(async (track) => {
+          const url = `/subtitle/embedded/${draft.infoHash}/${b64FileId}/${track.index}`;
+          const blobUrl = await fetchSubtitleBlob(url);
+          if (!blobUrl) return null;
+          const label = track.title
+            ? `[EMB] ${track.title}`
+            : track.language
+            ? `[EMB] ${track.language}`
+            : `[EMB] Track ${track.index}`;
+          const id = `emb_${track.index}_${Date.now()}`;
+          blobUrls.current[id] = blobUrl;
+          return { id, label, srclang: track.language || 'und', format: 'VTT' as const, blobUrl, active: false };
+        });
+
+        // Auto-populate torrent subtitle files (both MKV and MP4)
+        const torrentSubBlobPromises = torrentSubtitleFiles.map(async (subFile) => {
+          const b64SubFileId = encodeFileId(subFile.id);
+          const url = `/subtitle/file/${draft.infoHash}/${b64SubFileId}`;
+          const blobUrl = await fetchSubtitleBlob(url);
+          if (!blobUrl) return null;
+          const label = subFile.name.replace(/\.[^/.]+$/, '').split(/[\\/]/).pop() ?? subFile.name;
+          const id = `torrent_${subFile.id}_${Date.now()}`;
+          blobUrls.current[id] = blobUrl;
+          return { id, label, srclang: 'und', format: 'VTT' as const, blobUrl, active: false };
+        });
+
+        const allResults = await Promise.all([...embeddedSubBlobPromises, ...torrentSubBlobPromises]);
+        const newTracks = allResults.filter((t): t is NonNullable<typeof t> => t !== null);
+        if (newTracks.length > 0) setSubtitleTracks(newTracks);
+
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to start remux stream');
       } finally {
@@ -199,7 +257,25 @@ export default function App() {
         streamUrl: '',
         durationSec: 0,
         audioTracks: [],
+        embeddedSubtitles: [],
       });
+
+      // Auto-populate torrent subtitle files for non-MKV (MP4 etc.)
+      if (torrentSubtitleFiles.length > 0) {
+        const torrentSubBlobPromises = torrentSubtitleFiles.map(async (subFile) => {
+          const b64SubFileId = encodeFileId(subFile.id);
+          const url = `/subtitle/file/${draft.infoHash}/${b64SubFileId}`;
+          const blobUrl = await fetchSubtitleBlob(url);
+          if (!blobUrl) return null;
+          const label = subFile.name.replace(/\.[^/.]+$/, '').split(/[\\/]/).pop() ?? subFile.name;
+          const id = `torrent_${subFile.id}_${Date.now()}`;
+          blobUrls.current[id] = blobUrl;
+          return { id, label, srclang: 'und', format: 'VTT' as const, blobUrl, active: false };
+        });
+        const results = await Promise.all(torrentSubBlobPromises);
+        const newTracks = results.filter((t): t is NonNullable<typeof t> => t !== null);
+        if (newTracks.length > 0) setSubtitleTracks(newTracks);
+      }
     }
   };
 

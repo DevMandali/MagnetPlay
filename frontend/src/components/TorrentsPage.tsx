@@ -76,9 +76,9 @@ export function TorrentsPage({ apiBase = 'http://localhost:8080', onClose }: Tor
   const resume = (id: string) =>
     withAction(id, () => fetch(`${apiBase}/v1/torrent/resume/${id}`, { method: 'POST' }));
 
-  const deleteTorrent = async (id: string, deleteFiles: boolean) => {
+  const deleteTorrent = async (id: string) => {
     setDeleteConfirm(null);
-    await withAction(id, () => fetch(`${apiBase}/v1/torrent/${id}?deleteFiles=${deleteFiles}`, { method: 'DELETE' }));
+    await withAction(id, () => fetch(`${apiBase}/v1/torrent/${id}`, { method: 'DELETE' }));
   };
 
   const panelStyle: React.CSSProperties = {
@@ -191,17 +191,13 @@ export function TorrentsPage({ apiBase = 'http://localhost:8080', onClose }: Tor
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001,
         }}>
           <div style={{ background: '#1a1a1a', borderRadius: 12, padding: 32, maxWidth: 360 }}>
-            <h3 style={{ margin: '0 0 8px' }}>Delete Torrent?</h3>
-            <p style={{ color: '#aaa', fontSize: 14 }}>Also delete downloaded files from disk?</p>
+            <h3 style={{ margin: '0 0 8px' }}>Remove Torrent?</h3>
+            <p style={{ color: '#aaa', fontSize: 14 }}>Remove from dashboard. Torrent continues seeding in background.</p>
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button onClick={() => deleteTorrent(deleteConfirm, false)} style={{
+              <button onClick={() => deleteTorrent(deleteConfirm)} style={{
                 background: '#f87171', color: '#fff', border: 'none',
                 borderRadius: 6, padding: '8px 16px', cursor: 'pointer',
-              }}>Delete (keep files)</button>
-              <button onClick={() => deleteTorrent(deleteConfirm, true)} style={{
-                background: '#dc2626', color: '#fff', border: 'none',
-                borderRadius: 6, padding: '8px 16px', cursor: 'pointer',
-              }}>Delete + files</button>
+              }}>Remove from dashboard</button>
               <button onClick={() => setDeleteConfirm(null)} style={{
                 background: '#333', color: '#fff', border: 'none',
                 borderRadius: 6, padding: '8px 16px', cursor: 'pointer',

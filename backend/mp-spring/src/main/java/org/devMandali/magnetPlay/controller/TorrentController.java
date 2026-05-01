@@ -104,10 +104,8 @@ public class TorrentController {
     }
 
     @DeleteMapping("/{infoHash}")
-    public Mono<ResponseEntity<String>> delete(
-            @PathVariable String infoHash,
-            @RequestParam(defaultValue = "false") boolean deleteFiles) {
-        return service.deleteTorrent(infoHash, deleteFiles).map(ResponseEntity::ok);
+    public Mono<ResponseEntity<String>> delete(@PathVariable String infoHash) {
+        return service.deleteTorrent(infoHash).map(ResponseEntity::ok);
     }
 
     @GetMapping("/sessions")

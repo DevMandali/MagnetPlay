@@ -31,7 +31,7 @@ class TorrentHLSControllerTest {
     void startHLS_returns200_withManifestUrl() {
         HLSStartResponse mockResp = new HLSStartResponse(
                 "http://localhost:8091/hls/abc123/abc123:0/playlist.m3u8",
-                true, 7243.0, List.of());
+                true, 7243.0, List.of(), List.of());
 
         when(torrentService.startHLS("abc123", "abc123:0", 0.0))
                 .thenReturn(Mono.just(mockResp));
@@ -50,7 +50,7 @@ class TorrentHLSControllerTest {
 
     @Test
     void startHLS_returns503_whenSuccessFalse() {
-        HLSStartResponse failResp = new HLSStartResponse("", false, 0.0, List.of());
+        HLSStartResponse failResp = new HLSStartResponse("", false, 0.0, List.of(), List.of());
 
         when(torrentService.startHLS("abc123", "abc123:0", 0.0))
                 .thenReturn(Mono.just(failResp));

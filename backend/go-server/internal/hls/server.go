@@ -20,24 +20,37 @@ type FileOpener func(infoHash, fileId string) (io.ReadSeekCloser, int64, error)
 type FilePrioritizer func(infoHash, fileId string, start, end int64)
 
 // HLSServer is the internal media HTTP server.
-// It exposes two routes:
-//   - /remux/  handled by RemuxHandler (fMP4 pipe streaming)
-//   - /rawfile/ serves raw torrent bytes with Range support (FFmpeg input)
+// Routes:
+//   - /remux/              handled by RemuxHandler (fMP4 pipe streaming)
+//   - /rawfile/            serves raw torrent bytes with Range support (FFmpeg input)
+//   - /subtitle/embedded/  extracts embedded MKV subtitle stream as WebVTT
+//   - /subtitle/file/      converts torrent subtitle file to WebVTT
 type HLSServer struct {
 	port            int
 	fileOpener      FileOpener
 	filePrioritizer FilePrioritizer
 	remuxHandler    *RemuxHandler
+	subtitleHandler *SubtitleHandler
 }
 
-func NewHLSServer(port int, fo FileOpener, fprio FilePrioritizer, remuxHandler *RemuxHandler) *HLSServer {
-	return &HLSServer{port: port, fileOpener: fo, filePrioritizer: fprio, remuxHandler: remuxHandler}
+func NewHLSServer(port int, fo FileOpener, fprio FilePrioritizer, remuxHandler *RemuxHandler, subtitleHandler *SubtitleHandler) *HLSServer {
+	return &HLSServer{
+		port:            port,
+		fileOpener:      fo,
+		filePrioritizer: fprio,
+		remuxHandler:    remuxHandler,
+		subtitleHandler: subtitleHandler,
+	}
 }
 
 func (s *HLSServer) Handler() http.Handler {
 	mux := http.NewServeMux()
 	mux.Handle("/remux/", s.remuxHandler)
 	mux.HandleFunc("/rawfile/", s.serveRawFile)
+	if s.subtitleHandler != nil {
+		mux.HandleFunc("/subtitle/embedded/", s.subtitleHandler.ServeEmbedded)
+		mux.HandleFunc("/subtitle/file/", s.subtitleHandler.ServeFile)
+	}
 	return mux
 }
 

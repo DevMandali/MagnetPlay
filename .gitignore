@@ -41,6 +41,7 @@ backend/go-server/prowlarr-data/*.db
 backend/go-server/prowlarr-data/*.db-shm
 backend/go-server/prowlarr-data/*.db-wal
 backend/go-server/prowlarr-data/*.log
+backend/go-server/prowlarr-data/Backups/*
 
 # ── Graphify cache (keep graph output, ignore cache) ─────────────────────────
 **/graphify-out/cache/

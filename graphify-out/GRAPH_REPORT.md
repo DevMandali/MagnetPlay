@@ -1,81 +1,61 @@
-# Graph Report - .  (2026-04-27)
+# Graph Report - .  (2026-05-02)
 
 ## Corpus Check
-- 65 files · ~25,640 words
+- 70 files · ~28,030 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 453 nodes · 656 edges · 52 communities detected
-- Extraction: 74% EXTRACTED · 26% INFERRED · 0% AMBIGUOUS · INFERRED: 171 edges (avg confidence: 0.81)
+- 575 nodes · 870 edges · 30 communities detected
+- Extraction: 73% EXTRACTED · 27% INFERRED · 0% AMBIGUOUS · INFERRED: 238 edges (avg confidence: 0.81)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_Spring REST Service Layer|Spring REST Service Layer]]
-- [[_COMMUNITY_Go gRPC Server Core|Go gRPC Server Core]]
-- [[_COMMUNITY_App Root and Config|App Root and Config]]
+- [[_COMMUNITY_Go Torrent Core Engine|Go Torrent Core Engine]]
+- [[_COMMUNITY_Spring REST API Layer|Spring REST API Layer]]
+- [[_COMMUNITY_Integration Tests & Prowlarr Client|Integration Tests & Prowlarr Client]]
 - [[_COMMUNITY_HLS Transcoding Pipeline|HLS Transcoding Pipeline]]
-- [[_COMMUNITY_Torrent State Repository|Torrent State Repository]]
-- [[_COMMUNITY_gRPC Wiring and Prowlarr Start|gRPC Wiring and Prowlarr Start]]
-- [[_COMMUNITY_FFmpeg Auto-Download|FFmpeg Auto-Download]]
-- [[_COMMUNITY_Frontend App Handlers|Frontend App Handlers]]
-- [[_COMMUNITY_gRPC Client and Search|gRPC Client and Search]]
-- [[_COMMUNITY_HLS File Server|HLS File Server]]
-- [[_COMMUNITY_Prowlarr HTTP Client|Prowlarr HTTP Client]]
-- [[_COMMUNITY_Prowlarr Binary Downloader|Prowlarr Binary Downloader]]
-- [[_COMMUNITY_FFmpeg Binary Functions|FFmpeg Binary Functions]]
-- [[_COMMUNITY_Torrents Page UI|Torrents Page UI]]
-- [[_COMMUNITY_HLS HTTP Handler|HLS HTTP Handler]]
-- [[_COMMUNITY_Search Panel UI|Search Panel UI]]
-- [[_COMMUNITY_Status Panel UI|Status Panel UI]]
-- [[_COMMUNITY_Stop HLS Lifecycle|Stop HLS Lifecycle]]
-- [[_COMMUNITY_Test Repository Helper|Test Repository Helper]]
-- [[_COMMUNITY_Streaming Session Model|Streaming Session Model]]
-- [[_COMMUNITY_List Torrents RPC|List Torrents RPC]]
-- [[_COMMUNITY_File ID Contract|File ID Contract]]
-- [[_COMMUNITY_HLS Start Response|HLS Start Response]]
-- [[_COMMUNITY_Frontend Entry Point|Frontend Entry Point]]
-- [[_COMMUNITY_Frontend Type Definitions|Frontend Type Definitions]]
+- [[_COMMUNITY_Architecture Docs & Config|Architecture Docs & Config]]
+- [[_COMMUNITY_System Architecture Overview|System Architecture Overview]]
+- [[_COMMUNITY_App Entry Points & Piece Priority|App Entry Points & Piece Priority]]
+- [[_COMMUNITY_Prowlarr Download Manager|Prowlarr Download Manager]]
+- [[_COMMUNITY_gRPC Client Bridge|gRPC Client Bridge]]
+- [[_COMMUNITY_React UI Event Handlers|React UI Event Handlers]]
+- [[_COMMUNITY_FFmpeg Binary Manager|FFmpeg Binary Manager]]
+- [[_COMMUNITY_Torrent Lifecycle Operations|Torrent Lifecycle Operations]]
+- [[_COMMUNITY_Subtitle Handler|Subtitle Handler]]
+- [[_COMMUNITY_FFmpeg Utilities|FFmpeg Utilities]]
+- [[_COMMUNITY_HLS Server Interface|HLS Server Interface]]
+- [[_COMMUNITY_gRPC Channel Config|gRPC Channel Config]]
+- [[_COMMUNITY_Search REST Controller|Search REST Controller]]
+- [[_COMMUNITY_Status UI Panel|Status UI Panel]]
+- [[_COMMUNITY_Spring Boot Entry Point|Spring Boot Entry Point]]
+- [[_COMMUNITY_CORS Configuration|CORS Configuration]]
+- [[_COMMUNITY_Error Handling|Error Handling]]
+- [[_COMMUNITY_Byte Formatting Util|Byte Formatting Util]]
+- [[_COMMUNITY_Spring Boot Tests|Spring Boot Tests]]
+- [[_COMMUNITY_HLS Stop Flow|HLS Stop Flow]]
+- [[_COMMUNITY_gRPC Test Client|gRPC Test Client]]
+- [[_COMMUNITY_Torrent File ID Model|Torrent File ID Model]]
 - [[_COMMUNITY_Prowlarr Manager|Prowlarr Manager]]
-- [[_COMMUNITY_Torrent Info Struct|Torrent Info Struct]]
-- [[_COMMUNITY_Pause Torrent RPC|Pause Torrent RPC]]
-- [[_COMMUNITY_Resume Torrent RPC|Resume Torrent RPC]]
-- [[_COMMUNITY_Delete Torrent RPC|Delete Torrent RPC]]
+- [[_COMMUNITY_Torrent Info Model|Torrent Info Model]]
 - [[_COMMUNITY_Get Sessions Endpoint|Get Sessions Endpoint]]
-- [[_COMMUNITY_Community 31|Community 31]]
-- [[_COMMUNITY_Community 32|Community 32]]
-- [[_COMMUNITY_Community 33|Community 33]]
-- [[_COMMUNITY_Community 34|Community 34]]
-- [[_COMMUNITY_Community 35|Community 35]]
-- [[_COMMUNITY_Community 36|Community 36]]
-- [[_COMMUNITY_Community 37|Community 37]]
-- [[_COMMUNITY_Community 38|Community 38]]
-- [[_COMMUNITY_Community 39|Community 39]]
-- [[_COMMUNITY_Community 40|Community 40]]
-- [[_COMMUNITY_Community 41|Community 41]]
-- [[_COMMUNITY_Community 42|Community 42]]
-- [[_COMMUNITY_Community 43|Community 43]]
-- [[_COMMUNITY_Community 44|Community 44]]
-- [[_COMMUNITY_Community 45|Community 45]]
-- [[_COMMUNITY_Community 46|Community 46]]
-- [[_COMMUNITY_Community 47|Community 47]]
-- [[_COMMUNITY_Community 48|Community 48]]
-- [[_COMMUNITY_Community 49|Community 49]]
-- [[_COMMUNITY_Community 50|Community 50]]
-- [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_BitTorrent DHT Discovery|BitTorrent DHT Discovery]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `StartServer()` - 18 edges
-2. `TorrentController` - 17 edges
-3. `TorrentGrpcClient` - 16 edges
-4. `TorrentService` - 16 edges
-5. `grpc_server.StartServer` - 16 edges
-6. `ProwlarrClient` - 13 edges
-7. `Spring Boot Backend (mp-spring)` - 13 edges
-8. `Manager` - 11 edges
-9. `TorrentService` - 11 edges
-10. `Go Sidecar (go-server)` - 11 edges
+1. `MagnetPlay CLAUDE.md - Project Guidance` - 23 edges
+2. `StartServer()` - 20 edges
+3. `StartServer()` - 18 edges
+4. `TorrentController` - 17 edges
+5. `TorrentGrpcClient` - 16 edges
+6. `TorrentService` - 16 edges
+7. `TorrentController` - 15 edges
+8. `prowlarr.Manager.Start` - 13 edges
+9. `ProwlarrClient` - 13 edges
+10. `Spring Boot Backend (mp-spring)` - 13 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `StartServer()` --calls--> `NewRepository()`  [INFERRED]
+  backend\go-server\internal\grpc\server.go → backend\go-server\internal\torrent\repository.go
 - `Go sidecar owns all torrent state (design decision)` --rationale_for--> `TorrentGrpcClient`  [EXTRACTED]
   CLAUDE.md → backend\mp-spring\src\main\java\org\devMandali\magnetPlay\client\TorrentGrpcClient.java
 - `Spring Boot as thin translation layer (design decision)` --rationale_for--> `TorrentService`  [EXTRACTED]
@@ -84,296 +64,182 @@
   backend/mp-spring/src/main/java/org/devMandali/magnetPlay/client/ProwlarrClient.java → CLAUDE.md
 - `Piece prioritization strategy (first 5 + last 5 + range)` --rationale_for--> `TorrentService.streamFile()`  [INFERRED]
   CLAUDE.md → backend/mp-spring/src/main/java/org/devMandali/magnetPlay/service/TorrentService.java
-- `File ID format {infoHash}:{fileIndex}` --rationale_for--> `TorrentFile interface`  [INFERRED]
-  CLAUDE.md → frontend/src/types/index.ts
 
 ## Hyperedges (group relationships)
-- **gRPC Server Startup Wiring Flow** — grpc_server_startserver, prowlarr_manager_newmanager, ffmpeg_binary_ensureffmpeg, ffmpeg_binary_ensureffprobe, torrent_repository_newrepository, hls_transcoder_newremuxhandler, hls_server_newhlsserver, torrent_service_newtorrentservice [EXTRACTED 0.95]
-- **MKV Streaming Pipeline (rawfile â†’ FFmpeg remux â†’ fMP4)** — hls_server_serverawfile, hls_transcoder_remuxhandler, hls_transcoder_buildremuxargs, torrent_service_startremux, torrent_service_getorprobe, torrent_service_runffprobe [INFERRED 0.90]
-- **Piece Prioritization for Streaming** — torrent_service_streamfile, torrent_service_prioritize, hls_server_serverawfile, hls_server_fileprioritizer, grpc_server_startserver [INFERRED 0.85]
-- **FFmpeg Binary Auto-Download and Resolution** — ffmpeg_binary_ensureffmpeg, ffmpeg_binary_ensureffprobe, ffmpeg_binary_downloadffmpeg, ffmpeg_binary_fetchlatestrelease, ffmpeg_binary_extractzip, ffmpeg_binary_ffmpegbinaryname, ffmpeg_binary_ffprobebinaryname [EXTRACTED 0.95]
-- **Prowlarr Lifecycle: Download, Start, Seed Indexers** — prowlarr_manager_manager, prowlarr_manager_start, prowlarr_manager_stop, prowlarr_downloader_ensurebinary, prowlarr_manager_seeddefaultindexers, prowlarr_manager_fetchindexerschemas [EXTRACTED 0.95]
-- **Torrent gRPC Service Methods** — torrent_service_addtorrent, torrent_service_getfileinfo, torrent_service_streamfile, torrent_service_gettorrentstats, torrent_service_listtorrents, torrent_service_pausetorrent, torrent_service_resumetorrent, torrent_service_deletetorrent, torrent_service_startremux [EXTRACTED 1.00]
-- **gRPC Translation Pipeline: Controller â†’ Service â†’ GrpcClient** — torrentcontroller_torrentcontroller, torrentservice_torrentservice, torrentgrpcclient_torrentgrpcclient [EXTRACTED 0.98]
-- **MKV Remux Streaming Flow: App â†’ REST â†’ Service â†’ gRPC â†’ VideoPlayer** — app_handleplay, torrentcontroller_startremux, torrentservice_startremux, torrentgrpcclient_startremux, videoplayer_videoplayer [EXTRACTED 0.95]
-- **Live Stats Polling: StatusPanel + VideoPlayer StatsButton â†’ /v1/torrent/stats â†’ TorrentService** — statuspanel_statuspanel, videosetup_registerstatsbutton, torrentservice_gettorrentstats [EXTRACTED 0.92]
+- **gRPC Streaming Pipeline: Spring→gRPC→Go→BitTorrent** — spring_grpc_client, proto_torrent_proto, go_service, concept_grpc_streaming [EXTRACTED 0.95]
+- **React Frontend Component Tree** — frontend_main_tsx, frontend_app_tsx, frontend_video_player, frontend_subtitle_panel, frontend_netflix_overlay [INFERRED 0.85]
+- **Video Seeking Flow: HTTP Range → CORS → Piece Prioritization** — concept_http_range_requests, spring_cors_config, concept_piece_prioritization [INFERRED 0.80]
 
 ## Communities
 
-### Community 0 - "Spring REST Service Layer"
+### Community 0 - "Go Torrent Core Engine"
 Cohesion: 0.06
-Nodes (41): grpc_server.StartServer, hls.FileOpener (type), hls.FilePrioritizer (type), hls.HLSServer, hls.NewHLSServer, hls.HLSServer.serveRawFile, hls server tests, hls.BuildRemuxArgs (+33 more)
+Nodes (38): StartServer(), hls.RemuxHandler.StopAll, toFileInfoList(), prowlarr.NewManager, NewRepository(), IsMKV(), Prioritize(), runFFprobe() (+30 more)
 
-### Community 1 - "Go gRPC Server Core"
-Cohesion: 0.06
-Nodes (7): Spring Boot as thin translation layer (design decision), SessionManager, SessionManagerTest, withClosed(), TorrentController, TorrentHLSControllerTest, TorrentService
+### Community 1 - "Spring REST API Layer"
+Cohesion: 0.05
+Nodes (10): TorrentController, TorrentHLSControllerTest, TorrentService, SessionManager, SessionManagerTest, withClosed(), torrent.TorrentService.DeleteTorrent, validateMagnetLink() (+2 more)
 
-### Community 2 - "App Root and Config"
+### Community 2 - "Integration Tests & Prowlarr Client"
 Cohesion: 0.06
-Nodes (43): MagnetPlay CLAUDE.md, Frontend (React SPA), Go Sidecar (go-server), Peer Network (DHT + Trackers), Spring Boot Backend (mp-spring), BitTorrent Protocol, DHT (Distributed Hash Table), FileChunk (gRPC Message, 256KB) (+35 more)
+Nodes (11): Spring Boot as thin translation layer (design decision), ProwlarrClient, TestIsMKV(), TestStartRemux_ReturnsNotFound_UnknownTorrent(), NewTorrentService(), newTestRepository(), TestGetTorrentStats_UnknownHash(), TestListTorrents_EmptyRepo() (+3 more)
 
 ### Community 3 - "HLS Transcoding Pipeline"
+Cohesion: 0.09
+Nodes (34): activeJob, FileOpener, FilePrioritizer, HLSServer, RemuxHandler, NewHLSServer(), hls server tests, TestRawFileHandler_CORS() (+26 more)
+
+### Community 4 - "Architecture Docs & Config"
 Cohesion: 0.07
-Nodes (26): App (React root), Piece prioritization strategy (first 5 + last 5 + range), Config, Default(), ProwlarrConfig, main(), SearchPanel, StatusPanel (+18 more)
+Nodes (42): Spring Boot application.yml, MagnetPlay CLAUDE.md - Project Guidance, MagnetPlay CLAUDE.md, anacrolix/torrent BitTorrent Engine Library, File ID Format: {infoHash}:{fileIndex}, Go Sidecar Owns All Torrent State, God Node: App.tsx (React graph center, 11+ edges), God Node: repository.go (mutex risk, 11+ edges) (+34 more)
 
-### Community 4 - "Torrent State Repository"
-Cohesion: 0.12
-Nodes (22): activeJob, FileOpener, FilePrioritizer, HLSServer, RemuxHandler, NewHLSServer(), TestRawFileHandler_CORS(), TestRawFileHandler_NotFound_NoOpener() (+14 more)
+### Community 5 - "System Architecture Overview"
+Cohesion: 0.06
+Nodes (39): Frontend (React SPA), Go Sidecar (go-server), Peer Network (DHT + Trackers), Spring Boot Backend (mp-spring), BitTorrent Protocol, CORS Headers Required for Browser Video Seeking, DHT (Distributed Hash Table), FileChunk (gRPC Message, 256KB) (+31 more)
 
-### Community 5 - "gRPC Wiring and Prowlarr Start"
-Cohesion: 0.13
-Nodes (11): NewClient(), cloneMap(), extractProwlarrError(), NewManager(), prowlarr.BinaryName, prowlarr.EnsureBinary, prowlarr.FindBinary, indexerDef (+3 more)
+### Community 6 - "App Entry Points & Piece Priority"
+Cohesion: 0.07
+Nodes (26): App (React root), Piece prioritization strategy (first 5 + last 5 + range), Config struct, Config.Default, ProwlarrConfig struct, main (entrypoint), SearchPanel, StatusPanel (+18 more)
 
-### Community 6 - "FFmpeg Auto-Download"
-Cohesion: 0.14
-Nodes (10): NewSpeedTracker(), TestSpeedTracker_OldSamplesDropped(), TestSpeedTracker_SingleSample(), TestSpeedTracker_ZeroAtStart(), sample, torrent.TorrentService.DeleteTorrent, torrent.TorrentService.PauseTorrent, torrent.TorrentService.ResumeTorrent (+2 more)
+### Community 7 - "Prowlarr Download Manager"
+Cohesion: 0.11
+Nodes (23): NewClient(), BinaryName(), downloadToFile(), EnsureBinary(), extractZip(), fetchLatestRelease(), FindBinary(), platformSuffix() (+15 more)
 
-### Community 7 - "Frontend App Handlers"
-Cohesion: 0.1
-Nodes (4): Go sidecar owns all torrent state (design decision), ProwlarrClient.resolveApiKey(), ProwlarrClient.search(), TorrentGrpcClient
+### Community 8 - "gRPC Client Bridge"
+Cohesion: 0.06
+Nodes (5): Go sidecar owns all torrent state (design decision), TorrentGrpcClient, ProwlarrClient.resolveApiKey(), ProwlarrClient.search(), TorrentGrpcClient
 
-### Community 8 - "gRPC Client and Search"
-Cohesion: 0.12
-Nodes (13): handleFetchFiles(), handleFullReset(), handlePlay(), handleReset(), HLSStartResponse, TorrentController.addTorrent() POST /v1/torrent/add, TorrentController.startHLS() POST /v1/torrent/hls/start, TorrentController.startRemux() POST /v1/torrent/remux/start (+5 more)
+### Community 9 - "React UI Event Handlers"
+Cohesion: 0.08
+Nodes (17): handleFetchFiles(), handleFullReset(), handlePlay(), handleReset(), HLSStartResponse, encodeFileId(), handleFullReset(), handlePlay() (+9 more)
 
-### Community 9 - "HLS File Server"
+### Community 10 - "FFmpeg Binary Manager"
 Cohesion: 0.19
 Nodes (18): downloadFFmpeg(), downloadToFile(), EnsureFFmpeg(), EnsureFFprobe(), extractZip(), fetchLatestRelease(), FFmpegBinaryName(), FFprobeBinaryName() (+10 more)
 
-### Community 10 - "Prowlarr HTTP Client"
-Cohesion: 0.22
-Nodes (1): ProwlarrClient
+### Community 11 - "Torrent Lifecycle Operations"
+Cohesion: 0.2
+Nodes (13): deleteTorrent(), formatBytes(), formatSpeed(), pause(), resume(), withAction(), deleteTorrent(), fetchData() (+5 more)
 
-### Community 11 - "Prowlarr Binary Downloader"
-Cohesion: 0.25
-Nodes (6): TestStartRemux_ReturnsNotFound_UnknownTorrent(), NewTorrentService(), newTestRepository(), TestGetTorrentStats_UnknownHash(), TestListTorrents_EmptyRepo(), TorrentStatsControllerTest
+### Community 12 - "Subtitle Handler"
+Cohesion: 0.23
+Nodes (9): NewSubtitleHandler(), TestSubtitleEmbedded_BadPath(), TestSubtitleEmbedded_BadStreamIndex(), TestSubtitleEmbedded_CORSOnOptions(), TestSubtitleEmbedded_PathTraversalRejected(), TestSubtitleFile_BadPath(), TestSubtitleFile_ContentTypeHeader(), TestSubtitleFile_CORSOnOptions() (+1 more)
 
-### Community 12 - "FFmpeg Binary Functions"
-Cohesion: 0.33
-Nodes (9): BinaryName(), downloadToFile(), EnsureBinary(), extractZip(), fetchLatestRelease(), FindBinary(), platformSuffix(), githubAsset (+1 more)
-
-### Community 13 - "Torrents Page UI"
+### Community 13 - "FFmpeg Utilities"
 Cohesion: 0.24
 Nodes (10): ffmpeg.downloadFFmpeg, ffmpeg.EnsureFFmpeg, ffmpeg.EnsureFFprobe, ffmpeg.extractZip, ffmpeg.fetchLatestRelease, ffmpeg.FFmpegBinaryName, ffmpeg.FFprobeBinaryName, ffmpeg.ResolveFFprobePath (+2 more)
 
-### Community 14 - "HLS HTTP Handler"
-Cohesion: 0.36
-Nodes (7): deleteTorrent(), fetchData(), formatBytes(), formatSpeed(), pause(), resume(), withAction()
+### Community 14 - "HLS Server Interface"
+Cohesion: 0.33
+Nodes (7): hls.FileOpener (type), hls.FilePrioritizer (type), hls.HLSServer, hls.HLSServer.serveRawFile, hls.RemuxHandler, torrent.Repository, torrent.TorrentService
 
-### Community 15 - "Search Panel UI"
-Cohesion: 0.4
-Nodes (2): validateMagnetLink(), TorrentUtil
-
-### Community 16 - "Status Panel UI"
-Cohesion: 0.4
-Nodes (0): 
-
-### Community 17 - "Stop HLS Lifecycle"
+### Community 16 - "gRPC Channel Config"
 Cohesion: 0.5
 Nodes (1): GrpcConfig
 
-### Community 18 - "Test Repository Helper"
+### Community 17 - "Search REST Controller"
 Cohesion: 0.5
 Nodes (1): SearchController
 
-### Community 19 - "Streaming Session Model"
+### Community 18 - "Status UI Panel"
 Cohesion: 0.67
 Nodes (2): fmtBytes(), fmtSpeed()
 
-### Community 20 - "List Torrents RPC"
-Cohesion: 0.5
-Nodes (0): 
-
-### Community 21 - "File ID Contract"
+### Community 20 - "Spring Boot Entry Point"
 Cohesion: 0.67
 Nodes (1): MpSpringBackendApplication
 
-### Community 22 - "HLS Start Response"
+### Community 21 - "CORS Configuration"
 Cohesion: 0.67
 Nodes (1): CorsConfig
 
-### Community 23 - "Frontend Entry Point"
+### Community 22 - "Error Handling"
 Cohesion: 0.67
 Nodes (1): GlobalExceptionHandler
 
-### Community 24 - "Frontend Type Definitions"
+### Community 23 - "Byte Formatting Util"
 Cohesion: 0.67
 Nodes (1): ByteUtil
 
-### Community 25 - "Prowlarr Manager"
+### Community 24 - "Spring Boot Tests"
 Cohesion: 0.67
 Nodes (1): MpSpringBackendApplicationTests
 
-### Community 26 - "Torrent Info Struct"
-Cohesion: 0.67
-Nodes (0): 
-
-### Community 27 - "Pause Torrent RPC"
+### Community 26 - "HLS Stop Flow"
 Cohesion: 0.67
 Nodes (2): TorrentController.stopHLS() DELETE /v1/torrent/hls/stop, TorrentService.stopHLS()
 
-### Community 28 - "Resume Torrent RPC"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 29 - "Delete Torrent RPC"
+### Community 28 - "gRPC Test Client"
 Cohesion: 1.0
 Nodes (1): GrpcClient
 
-### Community 30 - "Get Sessions Endpoint"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 31 - "Community 31"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 32 - "Community 32"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 33 - "Community 33"
+### Community 32 - "Torrent File ID Model"
 Cohesion: 1.0
 Nodes (2): File ID format {infoHash}:{fileIndex}, TorrentFile interface
 
-### Community 34 - "Community 34"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 35 - "Community 35"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 36 - "Community 36"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 37 - "Community 37"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 38 - "Community 38"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 39 - "Community 39"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 40 - "Community 40"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 41 - "Community 41"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 42 - "Community 42"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 43 - "Community 43"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 44 - "Community 44"
-Cohesion: 1.0
-Nodes (1): Session Tracking (Per Range Request)
-
-### Community 45 - "Community 45"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 46 - "Community 46"
+### Community 44 - "Prowlarr Manager"
 Cohesion: 1.0
 Nodes (1): prowlarr.Manager
 
-### Community 47 - "Community 47"
+### Community 45 - "Torrent Info Model"
 Cohesion: 1.0
 Nodes (1): torrent.TorrentInfo
 
-### Community 48 - "Community 48"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 49 - "Community 49"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 50 - "Community 50"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 51 - "Community 51"
+### Community 49 - "Get Sessions Endpoint"
 Cohesion: 1.0
 Nodes (1): TorrentController.getSessions() GET /v1/torrent/sessions
 
+### Community 50 - "BitTorrent DHT Discovery"
+Cohesion: 1.0
+Nodes (1): BitTorrent DHT + Tracker Peer Discovery
+
 ## Knowledge Gaps
-- **57 isolated node(s):** `githubAsset`, `githubRelease`, `indexerDef`, `sample`, `GrpcClient` (+52 more)
+- **68 isolated node(s):** `githubAsset`, `githubRelease`, `indexerDef`, `sample`, `GrpcClient` (+63 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Resume Torrent RPC`** (2 nodes): `repository_test.go`, `TestTorrentInfo_PauseResume()`
+- **Thin community `gRPC Channel Config`** (4 nodes): `GrpcConfig.java`, `GrpcConfig`, `.customChannelConfigurer()`, `.grpcScheduler()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Delete Torrent RPC`** (2 nodes): `GrpcClient.java`, `GrpcClient`
+- **Thin community `Search REST Controller`** (4 nodes): `SearchController.java`, `SearchController`, `.search()`, `.SearchController()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Get Sessions Endpoint`** (2 nodes): `SubtitlePanel.tsx`, `handleFilePick()`
+- **Thin community `Status UI Panel`** (4 nodes): `StatusPanel.tsx`, `fmtBytes()`, `fmtSpeed()`, `poll()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 31`** (2 nodes): `repository_test_helper.go`, `NewTestRepository()`
+- **Thin community `Spring Boot Entry Point`** (3 nodes): `MpSpringBackendApplication.java`, `MpSpringBackendApplication`, `.main()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 32`** (2 nodes): `TorrentGrpcClient.listTorrents()`, `TorrentService.listTorrents()`
+- **Thin community `CORS Configuration`** (3 nodes): `CorsConfig.java`, `CorsConfig`, `.corsWebFilter()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 33`** (2 nodes): `File ID format {infoHash}:{fileIndex}`, `TorrentFile interface`
+- **Thin community `Error Handling`** (3 nodes): `GlobalExceptionHandler.java`, `GlobalExceptionHandler`, `.handleValidationException()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 34`** (1 nodes): `SearchResult.java`
+- **Thin community `Byte Formatting Util`** (3 nodes): `ByteUtil.java`, `ByteUtil`, `.formatSize()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 35`** (1 nodes): `SearchResultsResponse.java`
+- **Thin community `Spring Boot Tests`** (3 nodes): `MpSpringBackendApplicationTests.java`, `MpSpringBackendApplicationTests`, `.contextLoads()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 36`** (1 nodes): `SessionResponse.java`
+- **Thin community `HLS Stop Flow`** (3 nodes): `TorrentController.stopHLS() DELETE /v1/torrent/hls/stop`, `TorrentGrpcClient.stopHLS()`, `TorrentService.stopHLS()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 37`** (1 nodes): `TorrentAddResponse.java`
+- **Thin community `gRPC Test Client`** (2 nodes): `GrpcClient.java`, `GrpcClient`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 38`** (1 nodes): `TorrentListResponse.java`
+- **Thin community `Torrent File ID Model`** (2 nodes): `File ID format {infoHash}:{fileIndex}`, `TorrentFile interface`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 39`** (1 nodes): `TorrentStatsResponse.java`
+- **Thin community `Prowlarr Manager`** (1 nodes): `prowlarr.Manager`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 40`** (1 nodes): `vite.config.ts`
+- **Thin community `Torrent Info Model`** (1 nodes): `torrent.TorrentInfo`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 41`** (1 nodes): `main.tsx`
+- **Thin community `Get Sessions Endpoint`** (1 nodes): `TorrentController.getSessions() GET /v1/torrent/sessions`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 42`** (1 nodes): `vite-env.d.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 43`** (1 nodes): `index.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 44`** (1 nodes): `Session Tracking (Per Range Request)`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 45`** (1 nodes): `HLSStartResponse.java`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 46`** (1 nodes): `prowlarr.Manager`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 47`** (1 nodes): `torrent.TorrentInfo`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 48`** (1 nodes): `TorrentGrpcClient.pauseTorrent()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 49`** (1 nodes): `TorrentGrpcClient.resumeTorrent()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 50`** (1 nodes): `TorrentGrpcClient.deleteTorrent()`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 51`** (1 nodes): `TorrentController.getSessions() GET /v1/torrent/sessions`
+- **Thin community `BitTorrent DHT Discovery`** (1 nodes): `BitTorrent DHT + Tracker Peer Discovery`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `TorrentController` connect `Go gRPC Server Core` to `HLS Transcoding Pipeline`, `Prowlarr HTTP Client`, `Prowlarr Binary Downloader`?**
-  _High betweenness centrality (0.128) - this node is a cross-community bridge._
-- **Why does `StartServer()` connect `gRPC Wiring and Prowlarr Start` to `Spring REST Service Layer`, `Go gRPC Server Core`, `HLS Transcoding Pipeline`, `Torrent State Repository`, `HLS File Server`, `Prowlarr Binary Downloader`?**
-  _High betweenness centrality (0.115) - this node is a cross-community bridge._
-- **Why does `grpc_server.StartServer` connect `Spring REST Service Layer` to `Go gRPC Server Core`, `Torrents Page UI`, `HLS Transcoding Pipeline`, `gRPC Wiring and Prowlarr Start`?**
-  _High betweenness centrality (0.095) - this node is a cross-community bridge._
-- **Are the 17 inferred relationships involving `StartServer()` (e.g. with `main()` and `NewManager()`) actually correct?**
+- **Why does `StartServer()` connect `Go Torrent Core Engine` to `Spring REST API Layer`, `HLS Transcoding Pipeline`, `App Entry Points & Piece Priority`, `Prowlarr Download Manager`, `Subtitle Handler`, `FFmpeg Utilities`?**
+  _High betweenness centrality (0.107) - this node is a cross-community bridge._
+- **Why does `TorrentController` connect `Integration Tests & Prowlarr Client` to `Spring REST API Layer`, `App Entry Points & Piece Priority`?**
+  _High betweenness centrality (0.101) - this node is a cross-community bridge._
+- **Why does `TorrentService` connect `Integration Tests & Prowlarr Client` to `gRPC Client Bridge`, `Spring REST API Layer`?**
+  _High betweenness centrality (0.084) - this node is a cross-community bridge._
+- **Are the 8 inferred relationships involving `StartServer()` (e.g. with `NewClient()` and `FileOpener`) actually correct?**
+  _`StartServer()` has 8 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 17 inferred relationships involving `StartServer()` (e.g. with `main (entrypoint)` and `NewManager()`) actually correct?**
   _`StartServer()` has 17 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `githubAsset`, `githubRelease`, `indexerDef` to the rest of the system?**
-  _57 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `Spring REST Service Layer` be split into smaller, more focused modules?**
-  _Cohesion score 0.06 - nodes in this community are weakly interconnected._
-- **Should `Go gRPC Server Core` be split into smaller, more focused modules?**
+  _68 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Go Torrent Core Engine` be split into smaller, more focused modules?**
   _Cohesion score 0.06 - nodes in this community are weakly interconnected._

@@ -1,54 +1,282 @@
 {
-  "backend\\go-server\\main.go": 1774004626.0435648,
-  "backend\\go-server\\config\\config.go": 1776971999.8794816,
-  "backend\\go-server\\internal\\grpc\\server.go": 1777015642.6581235,
-  "backend\\go-server\\internal\\prowlarr\\downloader.go": 1776971999.8794816,
-  "backend\\go-server\\internal\\prowlarr\\manager.go": 1777014665.6378214,
-  "backend\\go-server\\internal\\torrent\\client.go": 1774004626.0397575,
-  "backend\\go-server\\internal\\torrent\\mapper.go": 1776616824.125327,
-  "backend\\go-server\\internal\\torrent\\repository.go": 1777017248.2263138,
-  "backend\\go-server\\internal\\torrent\\repository_test.go": 1776706393.0377512,
-  "backend\\go-server\\internal\\torrent\\service.go": 1777017255.8719802,
-  "backend\\go-server\\internal\\torrent\\service_stats_test.go": 1776706573.0480907,
-  "backend\\go-server\\internal\\torrent\\speed_tracker.go": 1776619827.8129468,
-  "backend\\go-server\\internal\\torrent\\speed_tracker_test.go": 1776706287.7409005,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\MpSpringBackendApplication.java": 1774004626.0588765,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\client\\ProwlarrClient.java": 1777020213.021621,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\client\\TorrentGrpcClient.java": 1776706809.9402325,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\config\\CorsConfig.java": 1776972000.084306,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\config\\GlobalExceptionHandler.java": 1774004626.0668845,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\config\\GrpcConfig.java": 1774004626.067885,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\controller\\SearchController.java": 1776972000.084306,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\controller\\TorrentController.java": 1776707515.8857708,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\SearchResult.java": 1776972000.084306,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\SearchResultsResponse.java": 1776972000.084306,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\SessionResponse.java": 1776707477.38598,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\TorrentAddRequest.java": 1774004626.0727086,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\TorrentAddResponse.java": 1774004626.0727086,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\TorrentListResponse.java": 1776706792.6619573,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\TorrentStatsResponse.java": 1776972000.084306,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\service\\TorrentService.java": 1776972000.084306,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\session\\SessionManager.java": 1776707371.8212929,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\session\\StreamingSession.java": 1776707363.4661832,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\util\\ByteUtil.java": 1774004626.0776489,
-  "backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\util\\TorrentUtil.java": 1774004626.07865,
-  "backend\\mp-spring\\src\\test\\java\\org\\devMandali\\magnetPlay\\GrpcClient.java": 1776707118.4439785,
-  "backend\\mp-spring\\src\\test\\java\\org\\devMandali\\magnetPlay\\MpSpringBackendApplicationTests.java": 1774004626.0845594,
-  "backend\\mp-spring\\src\\test\\java\\org\\devMandali\\magnetPlay\\controller\\TorrentStatsControllerTest.java": 1776707534.2511358,
-  "backend\\mp-spring\\src\\test\\java\\org\\devMandali\\magnetPlay\\session\\SessionManagerTest.java": 1776707260.7844832,
-  "frontend\\vite.config.ts": 1776616824.1623278,
-  "frontend\\src\\App.tsx": 1777018284.563013,
-  "frontend\\src\\main.tsx": 1776621056.5307033,
-  "frontend\\src\\vite-env.d.ts": 1776616824.159327,
-  "frontend\\src\\components\\NetflixSkipOverlay.tsx": 1776616824.1513271,
-  "frontend\\src\\components\\SearchPanel.tsx": 1777018332.7192452,
-  "frontend\\src\\components\\StatusPanel.tsx": 1776972000.084306,
-  "frontend\\src\\components\\SubtitlePanel.tsx": 1776616824.1533267,
-  "frontend\\src\\components\\TorrentsPage.tsx": 1776709300.6488988,
-  "frontend\\src\\components\\VideoPlayer.tsx": 1776621062.8668773,
-  "frontend\\src\\lib\\utils.ts": 1776616824.155327,
-  "frontend\\src\\lib\\videoSetup.ts": 1776972000.09995,
-  "frontend\\src\\types\\index.ts": 1776972000.09995,
-  "CLAUDE.md": 1776619531.248794,
-  "README.md": 1776708022.2068331
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\main.go": {
+    "mtime": 1777062079.0889692,
+    "hash": "7753d6f4984f55198e93fb94f3e622c7"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\config\\config.go": {
+    "mtime": 1777140917.9091613,
+    "hash": "0a8082a2b0231f6b13e7b58cc4f5d4af"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\ffmpeg\\binary.go": {
+    "mtime": 1777223337.2458613,
+    "hash": "6c0bfd7f4f37294d79ee856e61b7506a"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\ffmpeg\\binary_test.go": {
+    "mtime": 1777039898.0316446,
+    "hash": "e9c9e26bcd77130c2eb5383c9d1b908a"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\grpc\\server.go": {
+    "mtime": 1777629174.1310346,
+    "hash": "416747c638f702298df5d434d6bfcb50"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\server.go": {
+    "mtime": 1777629164.5682411,
+    "hash": "804728e98efc1cc854a329a0dfc6d623"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\server_test.go": {
+    "mtime": 1777629466.8842301,
+    "hash": "9120b41ab159c308a25b4dab67c23c1f"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\subtitle_handler.go": {
+    "mtime": 1777649325.981913,
+    "hash": "ca7de770e4a0964c5d7f9d7d2cc396e4"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\subtitle_handler_test.go": {
+    "mtime": 1777629148.9226,
+    "hash": "4864743f767ad15e43cbb973080b01f5"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\transcoder.go": {
+    "mtime": 1777573309.5421104,
+    "hash": "988439e09004d5b352f140a81a35fed1"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\transcoder_integration_test.go": {
+    "mtime": 1777140961.8436518,
+    "hash": "136a0232079410a4fe5ce6b887da7883"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\transcoder_test.go": {
+    "mtime": 1777223337.2471497,
+    "hash": "f889518fb8adc1ea59b782d5182e1724"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\prowlarr\\downloader.go": {
+    "mtime": 1777223337.2471497,
+    "hash": "b1c3a24f7dcd9d26fc1c008c0ae16032"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\prowlarr\\manager.go": {
+    "mtime": 1777223337.2481875,
+    "hash": "aac185b7f66a9e67f64f2499c267cebe"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\client.go": {
+    "mtime": 1774004626.0397575,
+    "hash": "b2e1204d0e55a3742a8e03585ea445de"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\mapper.go": {
+    "mtime": 1777629075.8102334,
+    "hash": "b7f4ea57cd6a1c1dff5a865f8c65a68f"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\repository.go": {
+    "mtime": 1777573158.0357747,
+    "hash": "600fbf568be5e64d5b0b6308c333eec4"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\repository_test.go": {
+    "mtime": 1776706393.0377512,
+    "hash": "dbccb60885121e924ea3b9e2a19d2121"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\repository_test_helper.go": {
+    "mtime": 1777040285.3992608,
+    "hash": "624c1dc94673460f70a611adabccebf4"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\service.go": {
+    "mtime": 1777652702.0668938,
+    "hash": "63ac606a20c0805c058a3bf5b5374bfc"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\service_mkv_test.go": {
+    "mtime": 1777140967.664033,
+    "hash": "adc133720b29317f78004be73e6314d7"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\service_stats_test.go": {
+    "mtime": 1777099816.4646876,
+    "hash": "343241b7fd7bf33cbc223f316cfa14cd"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\speed_tracker.go": {
+    "mtime": 1776619827.8129468,
+    "hash": "4b3d574da69867f68104367e9a174ef6"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\speed_tracker_test.go": {
+    "mtime": 1776706287.7409005,
+    "hash": "8fadd96d451c2c140c559f06d7ac75b0"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\mvnw": {
+    "mtime": 1757317868.0,
+    "hash": "ab50dd89da7da2346b28003352eeeeeb"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\MpSpringBackendApplication.java": {
+    "mtime": 1774004626.0588765,
+    "hash": "b3c38b9bf7a7752969d469ab4108e6f8"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\client\\ProwlarrClient.java": {
+    "mtime": 1777223337.251188,
+    "hash": "b8583084780332b94952604ae3d3658a"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\client\\TorrentGrpcClient.java": {
+    "mtime": 1777573553.5637183,
+    "hash": "2eca80dc06ad4fe5e4aeb3469edb0521"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\config\\CorsConfig.java": {
+    "mtime": 1776972000.084306,
+    "hash": "75f244b2629ff09a292429d62509c286"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\config\\GlobalExceptionHandler.java": {
+    "mtime": 1774004626.0668845,
+    "hash": "10b8cdad5cb18d9aaa59fe903b839380"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\config\\GrpcConfig.java": {
+    "mtime": 1774004626.067885,
+    "hash": "6e236a64e9c529e559368a578f9e1807"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\controller\\SearchController.java": {
+    "mtime": 1776972000.084306,
+    "hash": "a1f195d45ab66825b75888089dbcdbb8"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\controller\\TorrentController.java": {
+    "mtime": 1777573547.7761652,
+    "hash": "83071fa80c532ba3e143d933916313fc"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\HLSStartResponse.java": {
+    "mtime": 1777629213.9262502,
+    "hash": "0d35776adf0d9bb0c988557157812644"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\SearchResult.java": {
+    "mtime": 1776972000.084306,
+    "hash": "73856ba51d5e9d8e721a608cd0dc6257"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\SearchResultsResponse.java": {
+    "mtime": 1776972000.084306,
+    "hash": "7511d8a4a7d49c3be937984a77dabab9"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\SessionResponse.java": {
+    "mtime": 1776707477.38598,
+    "hash": "c0ef1d28c8f5265b583dadfc63cb6fc0"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\TorrentAddRequest.java": {
+    "mtime": 1774004626.0727086,
+    "hash": "c8efc0267ec9109ff1036084deb19bec"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\TorrentAddResponse.java": {
+    "mtime": 1777629223.690704,
+    "hash": "e3e2d256b2ccba7d5c8b99cf046756df"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\TorrentListResponse.java": {
+    "mtime": 1776706792.6619573,
+    "hash": "2cbeb294bb65c4a9078f71c3a4b74c25"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\model\\TorrentStatsResponse.java": {
+    "mtime": 1776972000.084306,
+    "hash": "74ee7ca757dd54319cf41dc5e2c3ce66"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\service\\TorrentService.java": {
+    "mtime": 1777629246.8463125,
+    "hash": "7a28f7623d42f35e626fd6ae9cc0c655"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\session\\SessionManager.java": {
+    "mtime": 1776707371.8212929,
+    "hash": "fee9a65de3f71bf1834d1fa540b11217"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\session\\StreamingSession.java": {
+    "mtime": 1777223337.2527008,
+    "hash": "e3a134723c3f1a2c04543bdc8c62ccfc"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\util\\ByteUtil.java": {
+    "mtime": 1774004626.0776489,
+    "hash": "f8d1e022515ff9a4e839349d90098ccd"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\java\\org\\devMandali\\magnetPlay\\util\\TorrentUtil.java": {
+    "mtime": 1774004626.07865,
+    "hash": "02782311160b13aa9231b50845fc11c2"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\test\\java\\org\\devMandali\\magnetPlay\\GrpcClient.java": {
+    "mtime": 1776707118.4439785,
+    "hash": "7e42f7c87c924ad49f2f9ca97c782a9d"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\test\\java\\org\\devMandali\\magnetPlay\\MpSpringBackendApplicationTests.java": {
+    "mtime": 1774004626.0845594,
+    "hash": "bffd6e577830d09b0d8a970269225294"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\test\\java\\org\\devMandali\\magnetPlay\\controller\\TorrentHLSControllerTest.java": {
+    "mtime": 1777629533.022466,
+    "hash": "80fa6a9f1243a5aaab4d3b412ea1ecbd"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\test\\java\\org\\devMandali\\magnetPlay\\controller\\TorrentStatsControllerTest.java": {
+    "mtime": 1777033256.1869545,
+    "hash": "590ad1bbc89e9d79e57b06f4086afc6f"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\test\\java\\org\\devMandali\\magnetPlay\\session\\SessionManagerTest.java": {
+    "mtime": 1776707260.7844832,
+    "hash": "4a04c3a6b7e49ef23b036f541ad65d52"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\vite.config.ts": {
+    "mtime": 1777629277.9484084,
+    "hash": "4383413c02427f78934bd7ba9318fe80"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\App.tsx": {
+    "mtime": 1777649325.982943,
+    "hash": "aeaf32e6966fba326ebeb4433c1fcf22"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\main.tsx": {
+    "mtime": 1777041040.0552807,
+    "hash": "f26b7c94cbafa4f3f4864f91a194af91"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\vite-env.d.ts": {
+    "mtime": 1776616824.159327,
+    "hash": "a37febf950dd86b9c537654e955538bd"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\components\\NetflixSkipOverlay.tsx": {
+    "mtime": 1776616824.1513271,
+    "hash": "b550633c3921410d076e5602796954a8"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\components\\SearchPanel.tsx": {
+    "mtime": 1777223337.2567554,
+    "hash": "38176ba294b820bdb9f16aa3ad693d8a"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\components\\StatusPanel.tsx": {
+    "mtime": 1777279098.4558043,
+    "hash": "a3057ada5fb022874b61a5e2ac2ce703"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\components\\SubtitlePanel.tsx": {
+    "mtime": 1776616824.1533267,
+    "hash": "1028d2e1c76718a4cbd48593741ede7f"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\components\\TorrentsPage.tsx": {
+    "mtime": 1777573695.180183,
+    "hash": "efec790ba6a9019fe9370f78a0614a13"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\components\\VideoPlayer.tsx": {
+    "mtime": 1777649325.9839425,
+    "hash": "e962f6e059087554d7e8f4f811da751b"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\lib\\utils.ts": {
+    "mtime": 1776616824.155327,
+    "hash": "be9f2d8e86cf491be80bcc70c8894c08"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\lib\\videoSetup.ts": {
+    "mtime": 1777289003.3510063,
+    "hash": "825c9f9d1c2d65c8242490df5961d7d3"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\types\\index.ts": {
+    "mtime": 1777629290.3661337,
+    "hash": "dbb5806f1a7283b97955d76fdfffb849"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\CLAUDE.md": {
+    "mtime": 1777223337.244356,
+    "hash": "64194da28c0f2e4823f193229ba1fc73"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\README.md": {
+    "mtime": 1776708022.2068331,
+    "hash": "58ab4dabf3a70c239f191dd12e943aec"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\resources\\application.yml": {
+    "mtime": 1777062092.0604675,
+    "hash": "67ed3b4998dd632e8879b506ad15a792"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\index.html": {
+    "mtime": 1776616824.140327,
+    "hash": "ed8b0bc2c47b89fcc58ccc053a94ad5f"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\init.mp4": {
+    "mtime": 1777139015.5527666,
+    "hash": "bacd3cd671485a4d28691e8ebf7c176b"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\testdata\\sample_10s.mkv": {
+    "mtime": 1777040486.7816422,
+    "hash": "d41d8cd98f00b204e9800998ecf8427e"
+  }
 }

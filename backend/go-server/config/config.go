@@ -1,6 +1,9 @@
 package config
 
-import "time"
+import (
+	"os"
+	"time"
+)
 
 type ProwlarrConfig struct {
 	DataDir      string
@@ -16,7 +19,8 @@ type Config struct {
 	Prowlarr        ProwlarrConfig
 	FFmpegPath      string
 	FFprobePath     string
-	HLSPort int
+	FFmpegBinDir    string
+	HLSPort         int
 }
 
 func Default() Config {
@@ -30,6 +34,26 @@ func Default() Config {
 			Port:         9696,
 			SeedIndexers: true,
 		},
-		HLSPort: 8091,
+		FFmpegBinDir: "./bin",
+		HLSPort:      8091,
 	}
+}
+
+// FromEnv returns Default() with path overrides from environment variables.
+// Electron sets these to subdirectories of app.getPath('userData').
+func FromEnv() Config {
+	cfg := Default()
+	if v := os.Getenv("DATA_DIR"); v != "" {
+		cfg.DataDir = v
+	}
+	if v := os.Getenv("PROWLARR_DATA_DIR"); v != "" {
+		cfg.Prowlarr.DataDir = v
+	}
+	if v := os.Getenv("PROWLARR_BIN_DIR"); v != "" {
+		cfg.Prowlarr.BinDir = v
+	}
+	if v := os.Getenv("FFMPEG_BIN_DIR"); v != "" {
+		cfg.FFmpegBinDir = v
+	}
+	return cfg
 }

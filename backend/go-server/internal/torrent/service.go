@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"server/internal/hls"
@@ -89,22 +90,28 @@ type TorrentService struct {
 	speedTrackers  map[string]*SpeedTracker
 	trackerMu      sync.Mutex
 	remuxHandler   *hls.RemuxHandler
-	ffprobePath    string
-	hlsFileBaseURL string // e.g. "http://localhost:8091/rawfile"
+	ffprobePath    atomic.Value // stores string; empty until binary is available
+	hlsFileBaseURL string       // e.g. "http://localhost:8091/rawfile"
 	probeCache     map[string]*probeResult
 	probeMu        sync.RWMutex
 }
 
 func NewTorrentService(repo *Repository, remuxHandler *hls.RemuxHandler, ffprobePath string, hlsFileBaseURL string) *TorrentService {
-	return &TorrentService{
+	svc := &TorrentService{
 		repo:           repo,
 		speedTrackers:  make(map[string]*SpeedTracker),
 		remuxHandler:   remuxHandler,
-		ffprobePath:    ffprobePath,
 		hlsFileBaseURL: hlsFileBaseURL,
 		probeCache:     make(map[string]*probeResult),
 	}
+	if ffprobePath != "" {
+		svc.ffprobePath.Store(ffprobePath)
+	}
+	return svc
 }
+
+// SetFFprobePath updates the ffprobe binary path after an async download completes.
+func (s *TorrentService) SetFFprobePath(p string) { s.ffprobePath.Store(p) }
 
 func (s *TorrentService) AddTorrent(ctx context.Context, req *pb.TorrentRequest) (*pb.TorrentResponse, error) {
 	magnetUrl := req.GetMagnetUrl()
@@ -472,8 +479,9 @@ func (s *TorrentService) getOrProbe(infoHash, fileId string, _ *lt.Torrent, f *l
 	}
 	s.probeMu.RUnlock()
 
-	if s.ffprobePath == "" {
-		log.Printf("[ffprobe] skipped — ffprobePath not configured")
+	fp, _ := s.ffprobePath.Load().(string)
+	if fp == "" {
+		log.Printf("[ffprobe] skipped — binary not yet available")
 		return nil
 	}
 
@@ -483,7 +491,7 @@ func (s *TorrentService) getOrProbe(infoHash, fileId string, _ *lt.Torrent, f *l
 	reader.SetReadahead(readahead)
 	defer reader.Close()
 
-	result := runFFprobe(s.ffprobePath, reader)
+	result := runFFprobe(fp, reader)
 	if result == nil {
 		log.Printf("[ffprobe] probe failed for fileId=%s", fileId)
 		return nil

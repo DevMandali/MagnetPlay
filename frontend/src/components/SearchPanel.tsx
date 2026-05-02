@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { SearchResult, SearchResultsResponse } from '../types';
+import { API_BASE } from '../lib/utils';
 
 interface Props {
   onSelect: (magnetUrl: string) => void;
@@ -139,7 +140,7 @@ export default function SearchPanel({ onSelect }: Props) {
     setError(null);
     setResults([]);
     try {
-      const res = await fetch(`/v1/search?q=${encodeURIComponent(q)}`, {
+      const res = await fetch(`${API_BASE}/v1/search?q=${encodeURIComponent(q)}`, {
         signal: AbortSignal.timeout(30000),
       });
       if (res.status === 503) throw new Error('Search unavailable — Prowlarr not running');

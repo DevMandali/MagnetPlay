@@ -1,4 +1,5 @@
 import videojs from 'video.js';
+import { API_BASE } from './utils';
 
 // ── Helpers shared by stats popup ────────────────────────────────────────────
 
@@ -44,7 +45,8 @@ export function registerStatsButton(): void {
       this.infoHash = options.infoHash ?? '';
       this.fileId   = options.fileId   ?? '';
       this.addClass('vjs-stats-btn');
-      this.controlText('Download Status');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this as any).controlText('Download Status');
 
       this.popup = document.createElement('div');
       this.popup.className = 'vjs-stats-popup';
@@ -80,7 +82,7 @@ export function registerStatsButton(): void {
     private async doPoll() {
       try {
         const res = await fetch(
-          `/v1/torrent/stats/${this.infoHash}?fileId=${encodeURIComponent(this.fileId)}`
+          `${API_BASE}/v1/torrent/stats/${this.infoHash}?fileId=${encodeURIComponent(this.fileId)}`
         );
         if (!res.ok || !this.popup) return;
         const s = await res.json() as {
@@ -159,11 +161,14 @@ export function registerSkipButtons(): void {
       this.seconds = options.seconds ?? 10;
       this.isBack = (options.direction ?? 'forward') === 'back';
       this.addClass('vjs-skip-btn');
-      this.controlText(this.isBack ? 'Rewind 10 seconds' : 'Forward 10 seconds');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (this as any).controlText(this.isBack ? 'Rewind 10 seconds' : 'Forward 10 seconds');
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     handleClick(e: any) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       super.handleClick(e);
       const p = this.player();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

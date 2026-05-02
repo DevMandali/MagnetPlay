@@ -1,0 +1,24 @@
+{
+  "name": "magnetplay",
+  "version": "0.1.0",
+  "description": "P2P video streaming desktop app",
+  "main": "electron/dist/main.js",
+  "private": true,
+  "scripts": {
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "build:frontend": "cd frontend && npm run build",
+    "build": "npm run build:frontend && npm run build:electron",
+    "electron:dev": "tsc -p tsconfig.electron.json && electron .",
+    "dist:linux": "npm run build && electron-builder --linux AppImage deb rpm",
+    "dist:win": "npm run build && electron-builder --win nsis"
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "typescript": "^5.5.0"
+  }
+}

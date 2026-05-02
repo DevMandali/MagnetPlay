@@ -1,0 +1,223 @@
+name: Build & Draft Release
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build-go:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Cross-compile Go sidecar
+        run: |
+          cd backend/go-server
+          mkdir -p ../../resources/go-server/win-x64
+          mkdir -p ../../resources/go-server/linux-x64
+          GOOS=windows GOARCH=amd64 go build -o ../../resources/go-server/win-x64/server.exe .
+          GOOS=linux   GOARCH=amd64 go build -o ../../resources/go-server/linux-x64/server .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: go-binaries
+          path: resources/go-server/
+
+  build-spring:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Build Spring Boot fat JAR
+        run: |
+          cd backend/mp-spring
+          ./mvnw clean package -DskipTests
+          mkdir -p ../../resources/spring
+          cp target/mp-spring-*.jar ../../resources/spring/mp-spring.jar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spring-jar
+          path: resources/spring/
+
+  build-jre-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Build jlink JRE for Linux
+        run: |
+          mkdir -p resources/jre/linux-x64
+          jlink \
+            --add-modules java.base,java.logging,java.net.http,java.xml,java.naming,java.management,java.instrument,java.security.jgss,jdk.crypto.ec,jdk.unsupported,java.desktop,java.sql,jdk.naming.rmi,jdk.naming.dns \
+            --no-header-files --no-man-pages --compress=2 \
+            --output resources/jre/linux-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jre-linux
+          path: resources/jre/
+
+  build-jre-win:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Build jlink JRE for Windows
+        shell: bash
+        run: |
+          mkdir -p resources/jre/win-x64
+          jlink \
+            --add-modules java.base,java.logging,java.net.http,java.xml,java.naming,java.management,java.instrument,java.security.jgss,jdk.crypto.ec,jdk.unsupported,java.desktop,java.sql,jdk.naming.rmi,jdk.naming.dns \
+            --no-header-files --no-man-pages --compress=2 \
+            --output resources/jre/win-x64
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jre-win
+          path: resources/jre/
+
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Build React frontend
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+
+  package-linux:
+    needs: [build-go, build-spring, build-jre-linux, build-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/download-artifact@v4
+        with:
+          name: go-binaries
+          path: resources/go-server/
+      - uses: actions/download-artifact@v4
+        with:
+          name: spring-jar
+          path: resources/spring/
+      - uses: actions/download-artifact@v4
+        with:
+          name: jre-linux
+          path: resources/jre/
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+      - name: Normalize platform dir for electron-builder
+        run: |
+          mv resources/go-server/linux-x64 resources/go-server/current
+          mv resources/jre/linux-x64 resources/jre/current
+      - name: Build Linux packages
+        run: |
+          npm ci
+          npm run build:electron
+          npx electron-builder --linux AppImage deb rpm --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-packages
+          path: dist-electron/
+
+  package-win:
+    needs: [build-go, build-spring, build-jre-win, build-frontend]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/download-artifact@v4
+        with:
+          name: go-binaries
+          path: resources/go-server/
+      - uses: actions/download-artifact@v4
+        with:
+          name: spring-jar
+          path: resources/spring/
+      - uses: actions/download-artifact@v4
+        with:
+          name: jre-win
+          path: resources/jre/
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist/
+      - name: Normalize platform dir for electron-builder
+        shell: bash
+        run: |
+          mv resources/go-server/win-x64 resources/go-server/current
+          mv resources/jre/win-x64 resources/jre/current
+      - name: Build Windows installer
+        run: |
+          npm ci
+          npm run build:electron
+          npx electron-builder --win nsis --publish never
+      - uses: actions/upload-artifact@v4
+        with:
+          name: win-packages
+          path: dist-electron/
+
+  draft-release:
+    needs: [package-linux, package-win]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-packages
+          path: dist-electron/
+      - uses: actions/download-artifact@v4
+        with:
+          name: win-packages
+          path: dist-electron/
+      - name: Bump patch version
+        id: bump
+        run: |
+          npm version patch --no-git-tag-version
+          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json
+          git commit -m "chore: bump version to v${{ steps.bump.outputs.version }}"
+          git push
+      - name: Create draft release
+        run: |
+          gh release create "v${{ steps.bump.outputs.version }}" \
+            --title "MagnetPlay v${{ steps.bump.outputs.version }}" \
+            --generate-notes \
+            --draft \
+            dist-electron/*.exe \
+            dist-electron/*.AppImage \
+            dist-electron/*.deb \
+            dist-electron/*.rpm \
+            dist-electron/*.yml
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}

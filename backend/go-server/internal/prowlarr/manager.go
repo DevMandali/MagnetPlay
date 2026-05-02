@@ -35,24 +35,46 @@ func NewManager(binDir, dataDir string, port int, seedOnce bool) *Manager {
 }
 
 // Start downloads Prowlarr if needed, spawns it, waits for readiness, reads API key.
+// On first run, restarts once to apply showTrayIcon=false (takes effect at startup only).
 func (m *Manager) Start() error {
 	if err := EnsureBinary(m.binDir); err != nil {
 		return fmt.Errorf("ensure binary: %w", err)
-	}
-
-	binPath := FindBinary(m.binDir)
-	if binPath == "" {
-		return fmt.Errorf("prowlarr binary not found in %s after download", m.binDir)
 	}
 
 	absDataDir, err := filepath.Abs(m.dataDir)
 	if err != nil {
 		return fmt.Errorf("resolve data dir: %w", err)
 	}
-	m.dataDir = absDataDir // ensure all subsequent uses (readAPIKey, etc.) use absolute path
+	m.dataDir = absDataDir
 
 	if err := os.MkdirAll(m.dataDir, 0755); err != nil {
 		return err
+	}
+
+	if err := m.launch(); err != nil {
+		return err
+	}
+
+	if m.disableSysTray() {
+		// showTrayIcon was just patched — restart so the change takes effect at startup
+		log.Printf("[prowlarr] restarting to apply showTrayIcon=false")
+		m.killProc()
+		if err := m.launch(); err != nil {
+			return err
+		}
+	}
+
+	if m.seedOnce {
+		go m.seedDefaultIndexers()
+	}
+	return nil
+}
+
+// launch spawns the Prowlarr process, waits for readiness, and reads the API key.
+func (m *Manager) launch() error {
+	binPath := FindBinary(m.binDir)
+	if binPath == "" {
+		return fmt.Errorf("prowlarr binary not found in %s", m.binDir)
 	}
 
 	m.mu.Lock()
@@ -63,6 +85,7 @@ func (m *Manager) Start() error {
 	)
 	m.cmd.Stdout = os.Stdout
 	m.cmd.Stderr = os.Stderr
+	hideWindow(m.cmd)
 	m.mu.Unlock()
 
 	if err := m.cmd.Start(); err != nil {
@@ -71,7 +94,7 @@ func (m *Manager) Start() error {
 	log.Printf("[prowlarr] started PID %d on port %d", m.cmd.Process.Pid, m.port)
 
 	if err := m.waitReady(90 * time.Second); err != nil {
-		m.Stop()
+		m.killProc()
 		return err
 	}
 
@@ -79,13 +102,75 @@ func (m *Manager) Start() error {
 	if err != nil {
 		return fmt.Errorf("read API key: %w", err)
 	}
-	m.apiKey = key
-	log.Printf("[prowlarr] ready — API key acquired")
 
-	if m.seedOnce {
-		go m.seedDefaultIndexers()
-	}
+	m.mu.Lock()
+	m.apiKey = key
+	m.mu.Unlock()
+	log.Printf("[prowlarr] ready — API key acquired")
 	return nil
+}
+
+// killProc kills the Prowlarr process and waits for it to exit.
+func (m *Manager) killProc() {
+	m.mu.Lock()
+	cmd := m.cmd
+	m.mu.Unlock()
+	if cmd == nil || cmd.Process == nil {
+		return
+	}
+	if runtime.GOOS == "windows" {
+		cmd.Process.Kill()
+	} else {
+		cmd.Process.Signal(os.Interrupt)
+		done := make(chan struct{})
+		go func() { cmd.Wait(); close(done) }()
+		select {
+		case <-done:
+		case <-time.After(5 * time.Second):
+			cmd.Process.Kill()
+		}
+	}
+	cmd.Wait()
+}
+
+// disableSysTray PUTs showTrayIcon=false via the Prowlarr API.
+// Returns true if the setting was changed (restart required to take effect), false if already disabled or on error.
+func (m *Manager) disableSysTray() bool {
+	getURL := fmt.Sprintf("%s/api/v1/config/host?apikey=%s", m.BaseURL(), m.APIKey())
+	resp, err := healthClient.Get(getURL)
+	if err != nil {
+		log.Printf("[prowlarr] disableSysTray GET: %v", err)
+		return false
+	}
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<16))
+	resp.Body.Close()
+
+	var cfg map[string]interface{}
+	if err := json.Unmarshal(body, &cfg); err != nil {
+		log.Printf("[prowlarr] disableSysTray parse: %v", err)
+		return false
+	}
+
+	if show, _ := cfg["showTrayIcon"].(bool); !show {
+		return false // already disabled — no restart needed
+	}
+
+	cfg["showTrayIcon"] = false
+	data, _ := json.Marshal(cfg)
+
+	req, _ := http.NewRequest(http.MethodPut,
+		fmt.Sprintf("%s/api/v1/config/host?apikey=%s", m.BaseURL(), m.APIKey()),
+		bytes.NewReader(data))
+	req.Header.Set("Content-Type", "application/json")
+
+	r, err := seedClient.Do(req)
+	if err != nil {
+		log.Printf("[prowlarr] disableSysTray PUT: %v", err)
+		return false
+	}
+	r.Body.Close()
+	log.Printf("[prowlarr] showTrayIcon disabled (status %d) — restart pending", r.StatusCode)
+	return r.StatusCode == 200 || r.StatusCode == 202
 }
 
 func (m *Manager) Stop() {

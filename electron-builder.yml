@@ -1,0 +1,59 @@
+appId: com.devmandali.magnetplay
+productName: MagnetPlay
+directories:
+  output: dist-electron
+  buildResources: build-assets
+
+files:
+  - electron/dist/**
+  - electron/splash.html
+  - frontend/dist/**
+  - build-assets/**
+  - package.json
+
+extraResources:
+  - from: resources/go-server/current/
+    to: go-server/
+    filter: ["**"]
+  - from: resources/spring/
+    to: spring/
+    filter: ["*.jar"]
+  - from: resources/jre/current/
+    to: jre/
+    filter: ["**"]
+
+win:
+  target:
+    - target: msi
+      arch: x64
+    - target: nsis
+      arch: x64
+  icon: build-assets/icon.png
+  artifactName: MagnetPlay-Setup-${version}.${ext}
+
+linux:
+  target:
+    - AppImage
+    - deb
+    - rpm
+  icon: build-assets/icon.png
+  category: AudioVideo
+  artifactName: MagnetPlay-${version}-${arch}.${ext}
+  executableName: magnetplay
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+
+msi:
+  oneClick: false
+  perMachine: false
+
+publish:
+  provider: github
+  owner: devmandali2000
+  repo: MagnetPlay
+  releaseType: draft

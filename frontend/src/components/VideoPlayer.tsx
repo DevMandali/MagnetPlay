@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import videojs from 'video.js';
 import 'video.js/dist/video-js.css';
 import { SubtitleTrack, MoovStatus, AudioTrack } from '../types';
-import { detectMoovPosition } from '../lib/utils';
+import { detectMoovPosition, API_BASE } from '../lib/utils';
 import NetflixSkipOverlay from './NetflixSkipOverlay';
 
 const MIME_LABELS: Record<string, string> = {
@@ -33,7 +33,7 @@ interface Props {
   onMoovStatus?: (status: MoovStatus) => void;
 }
 
-export default function VideoPlayer({ infoHash, fileId, fileName, mimeType, isMkv, streamUrl, durationSec, audioTracks, subtitleTracks, moovBadge, peerStats, showStatusPanel, onToggleStatusPanel, showSubPanel, onToggleSubPanel, subtitleTrackCount, onError, onMoovStatus }: Props) {
+export default function VideoPlayer({ infoHash, fileId, fileName, mimeType, isMkv, streamUrl, durationSec, audioTracks: _audioTracks, subtitleTracks, moovBadge, peerStats, showStatusPanel, onToggleStatusPanel, showSubPanel, onToggleSubPanel, subtitleTrackCount, onError, onMoovStatus }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<ReturnType<typeof videojs> | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -72,7 +72,7 @@ export default function VideoPlayer({ infoHash, fileId, fileName, mimeType, isMk
   useEffect(() => { streamUrlRef.current = streamUrl; }, [streamUrl]);
   useEffect(() => { durationSecRef.current = durationSec; }, [durationSec]);
 
-  const streamUrlForNonMkv = `/v1/torrent/stream/${infoHash}?fileId=${encodeURIComponent(fileId)}`;
+  const streamUrlForNonMkv = `${API_BASE}/v1/torrent/stream/${infoHash}?fileId=${encodeURIComponent(fileId)}`;
 
   // ─── Moov detection ─────────────────────────────────────────────────────────
   useEffect(() => {

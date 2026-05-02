@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"sync/atomic"
 )
 
 type activeJob struct {
@@ -21,21 +22,27 @@ type activeJob struct {
 // and streams the result as fragmented MP4 directly to the HTTP client.
 // Each new request for a fileId cancels any prior stream for that fileId.
 type RemuxHandler struct {
-	ffmpegPath  string
-	fileBaseURL string // rawfile base URL, e.g. "http://localhost:8091/rawfile"
-	baseURL     string // public base URL for this server, e.g. "http://localhost:8091"
+	ffmpegPath  atomic.Value // stores string; empty until binary is available
+	fileBaseURL string       // rawfile base URL, e.g. "http://localhost:8091/rawfile"
+	baseURL     string       // public base URL for this server, e.g. "http://localhost:8091"
 	mu          sync.Mutex
 	activeJobs  map[string]*activeJob // fileId → current job
 }
 
 func NewRemuxHandler(ffmpegPath, fileBaseURL, baseURL string) *RemuxHandler {
-	return &RemuxHandler{
-		ffmpegPath:  ffmpegPath,
+	h := &RemuxHandler{
 		fileBaseURL: fileBaseURL,
 		baseURL:     baseURL,
 		activeJobs:  make(map[string]*activeJob),
 	}
+	if ffmpegPath != "" {
+		h.ffmpegPath.Store(ffmpegPath)
+	}
+	return h
 }
+
+// SetFFmpegPath updates the FFmpeg binary path after an async download completes.
+func (h *RemuxHandler) SetFFmpegPath(p string) { h.ffmpegPath.Store(p) }
 
 // GetRemuxBaseURL returns the remux URL for a file without the ?t= seek param.
 // The caller appends &t={seekSec} for each play/seek request.
@@ -121,8 +128,14 @@ func (h *RemuxHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cancel()
 	}()
 
+	fp, _ := h.ffmpegPath.Load().(string)
+	if fp == "" {
+		http.Error(w, "FFmpeg not yet available — downloading in background, please retry shortly", http.StatusServiceUnavailable)
+		return
+	}
+
 	args := BuildRemuxArgs(seekSec, fileURL, videoCodec, audioCodec)
-	cmd := exec.CommandContext(ctx, h.ffmpegPath, args...)
+	cmd := exec.CommandContext(ctx, fp, args...)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

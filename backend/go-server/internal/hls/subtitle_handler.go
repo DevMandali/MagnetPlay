@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 )
 
@@ -20,13 +21,20 @@ import (
 //	GET /subtitle/embedded/{infoHash}/{b64fileId}/{streamIndex}  — extract embedded MKV sub stream
 //	GET /subtitle/file/{infoHash}/{b64fileId}                   — convert torrent subtitle file to WebVTT
 type SubtitleHandler struct {
-	ffmpegPath  string
-	fileBaseURL string // e.g. "http://localhost:8091/rawfile"
+	ffmpegPath  atomic.Value // stores string; empty until binary is available
+	fileBaseURL string       // e.g. "http://localhost:8091/rawfile"
 }
 
 func NewSubtitleHandler(ffmpegPath, fileBaseURL string) *SubtitleHandler {
-	return &SubtitleHandler{ffmpegPath: ffmpegPath, fileBaseURL: fileBaseURL}
+	h := &SubtitleHandler{fileBaseURL: fileBaseURL}
+	if ffmpegPath != "" {
+		h.ffmpegPath.Store(ffmpegPath)
+	}
+	return h
 }
+
+// SetFFmpegPath updates the FFmpeg binary path after an async download completes.
+func (h *SubtitleHandler) SetFFmpegPath(p string) { h.ffmpegPath.Store(p) }
 
 // ServeEmbedded handles GET /subtitle/embedded/{infoHash}/{b64fileId}/{streamIndex}
 func (h *SubtitleHandler) ServeEmbedded(w http.ResponseWriter, r *http.Request) {
@@ -110,11 +118,17 @@ func (h *SubtitleHandler) ServeFile(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SubtitleHandler) runFFmpegToWebVTT(w http.ResponseWriter, args []string) {
+	fp, _ := h.ffmpegPath.Load().(string)
+	if fp == "" {
+		http.Error(w, "FFmpeg not yet available — downloading in background, please retry shortly", http.StatusServiceUnavailable)
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	fullArgs := append([]string{"-y"}, args...)
-	cmd := exec.CommandContext(ctx, h.ffmpegPath, fullArgs...)
+	cmd := exec.CommandContext(ctx, fp, fullArgs...)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

@@ -22,31 +22,8 @@ import (
 )
 
 func StartServer(cfg config.Config) {
-	// Start Prowlarr — non-fatal
-	pm := prowlarr.NewManager(
-		cfg.Prowlarr.BinDir,
-		cfg.Prowlarr.DataDir,
-		cfg.Prowlarr.Port,
-		cfg.Prowlarr.SeedIndexers,
-	)
-	if err := pm.Start(); err != nil {
-		log.Printf("[prowlarr] startup failed: %v (search will be unavailable)", err)
-	}
-	defer pm.Stop()
-
-	// Ensure FFmpeg binaries — fatal if unavailable
-	ffmpegBinDir := "./bin"
-	ffmpegPath, err := ffmpeg.EnsureFFmpeg(cfg.FFmpegPath, ffmpegBinDir)
-	if err != nil {
-		log.Fatalf("[ffmpeg] binary unavailable: %v", err)
-	}
-	ffprobePath, err := ffmpeg.EnsureFFprobe(cfg.FFprobePath, ffmpegBinDir)
-	if err != nil {
-		log.Fatalf("[ffprobe] binary unavailable: %v", err)
-	}
-	log.Printf("[ffmpeg] using %s", ffmpegPath)
-	log.Printf("[ffprobe] using %s", ffprobePath)
-
+	// Open the gRPC listener immediately so Electron's health check passes
+	// before any optional-binary downloads begin.
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.GRPCPort))
 	if err != nil {
 		log.Fatalf("Failed to listen on port %d: %v", cfg.GRPCPort, err)
@@ -114,8 +91,55 @@ func StartServer(cfg config.Config) {
 	hlsBaseURL := fmt.Sprintf("http://localhost:%d", cfg.HLSPort)
 	hlsFileBaseURL := fmt.Sprintf("http://localhost:%d/rawfile", cfg.HLSPort)
 
+	// Resolve existing FFmpeg/FFprobe binaries without downloading.
+	// If not present, handlers return 503 until the background download completes.
+	ffmpegPath, _ := ffmpeg.ResolvePath(cfg.FFmpegPath, cfg.FFmpegBinDir)
+	ffprobePath, _ := ffmpeg.ResolveFFprobePath(cfg.FFprobePath, cfg.FFmpegBinDir)
+
 	remuxHandler := hls.NewRemuxHandler(ffmpegPath, hlsFileBaseURL, hlsBaseURL)
 	subtitleHandler := hls.NewSubtitleHandler(ffmpegPath, hlsFileBaseURL)
+
+	svc := torrent.NewTorrentService(repo, remuxHandler, ffprobePath, hlsFileBaseURL)
+
+	// Download FFmpeg in the background on first run.
+	if ffmpegPath == "" || ffprobePath == "" {
+		log.Printf("[ffmpeg] binary not found — downloading in background (remux/subtitle unavailable until done)")
+		go func() {
+			p, err := ffmpeg.EnsureFFmpeg(cfg.FFmpegPath, cfg.FFmpegBinDir)
+			if err != nil {
+				log.Printf("[ffmpeg] download failed: %v", err)
+				return
+			}
+			pp, err := ffmpeg.EnsureFFprobe(cfg.FFprobePath, cfg.FFmpegBinDir)
+			if err != nil {
+				log.Printf("[ffprobe] download failed: %v", err)
+				return
+			}
+			remuxHandler.SetFFmpegPath(p)
+			subtitleHandler.SetFFmpegPath(p)
+			svc.SetFFprobePath(pp)
+			log.Printf("[ffmpeg] ready at %s", p)
+			log.Printf("[ffprobe] ready at %s", pp)
+		}()
+	} else {
+		log.Printf("[ffmpeg] using %s", ffmpegPath)
+		log.Printf("[ffprobe] using %s", ffprobePath)
+	}
+
+	// Start Prowlarr in the background — non-fatal, search unavailable until done.
+	pm := prowlarr.NewManager(
+		cfg.Prowlarr.BinDir,
+		cfg.Prowlarr.DataDir,
+		cfg.Prowlarr.Port,
+		cfg.Prowlarr.SeedIndexers,
+	)
+	go func() {
+		if err := pm.Start(); err != nil {
+			log.Printf("[prowlarr] startup failed: %v (search will be unavailable)", err)
+		}
+	}()
+	defer pm.Stop()
+
 	hlsSrv := hls.NewHLSServer(cfg.HLSPort, fileOpener, filePrioritizer, remuxHandler, subtitleHandler)
 
 	go func() {
@@ -123,8 +147,6 @@ func StartServer(cfg config.Config) {
 			log.Printf("[media-http] server error: %v", err)
 		}
 	}()
-
-	svc := torrent.NewTorrentService(repo, remuxHandler, ffprobePath, hlsFileBaseURL)
 
 	grpcServer := grpc.NewServer()
 	pb.RegisterTorrentServiceServer(grpcServer, svc)

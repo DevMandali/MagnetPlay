@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { TorrentFileStats } from '../types';
+import { API_BASE } from '../lib/utils';
 
 interface StatusPanelProps {
   infoHash: string;
@@ -30,7 +31,7 @@ export default function StatusPanel({ infoHash, fileId }: StatusPanelProps) {
     const poll = async () => {
       try {
         const res = await fetch(
-          `/v1/torrent/stats/${infoHash}?fileId=${encodeURIComponent(fileId)}`
+          `${API_BASE}/v1/torrent/stats/${infoHash}?fileId=${encodeURIComponent(fileId)}`
         );
         if (res.ok && !cancelled) {
           setStats(await res.json());

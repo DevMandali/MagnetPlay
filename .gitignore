@@ -55,3 +55,17 @@ backend/go-server/prowlarr-data/Backups/*
 # ── Logs ───────────────────────────────────────────────────────────────────────
 backend/go-server/logs/*
 backend/mp-spring/logs/*
+
+# ── Electron ──────────────────────────────────────────────────────────────────
+dist-electron/
+electron/dist/
+
+# ── CI-populated binaries (never committed) ───────────────────────────────────
+resources/
+
+# ── Root node_modules ─────────────────────────────────────────────────────────
+node_modules/
+
+# ── Graphify incremental state (internal, not graph output) ──────────────────
+graphify-out/.graphify_incremental.json
+graphify-out/.graphify_transcripts.json

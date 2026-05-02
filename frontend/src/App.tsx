@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { TorrentFile, ActivePlayer, SubtitleTrack, SubtitleTrackInfo, MoovStatus, FetchState, TorrentFileStats, RemuxStartResponse } from './types';
-import { srtToVtt, readFileAsText } from './lib/utils';
+import { srtToVtt, readFileAsText, API_BASE, HLS_BASE } from './lib/utils';
 import SubtitlePanel from './components/SubtitlePanel';
 import StatusPanel from './components/StatusPanel';
 import VideoPlayer from './components/VideoPlayer';
 import { TorrentsPage } from './components/TorrentsPage';
 import SearchPanel from './components/SearchPanel';
+import UpdateBanner from './components/UpdateBanner';
 
 const MOOV_BADGE: Record<string, { cls: string; icon: string; spin: boolean; label: string } | null> = {
   idle:     null,
@@ -44,6 +45,10 @@ export default function App() {
   const blobUrls = useRef<Record<string, string>>({});
   const [torrentSubtitleFiles, setTorrentSubtitleFiles] = useState<TorrentFile[]>([]);
 
+  // Electron auto-update state
+  const [updateStatus, setUpdateStatus] = useState<'available' | 'downloaded' | null>(null);
+  const [updateVersion, setUpdateVersion] = useState('');
+
   // Encodes a fileId to base64url (no padding) — matches Go's base64.RawURLEncoding
   const encodeFileId = (fileId: string): string =>
     btoa(fileId).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
@@ -71,6 +76,18 @@ export default function App() {
     }
     el.textContent = `.video-js .vjs-text-track-cue { font-size: ${subFontSize / 100}em !important; }`;
   }, [subFontSize]);
+
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    window.electronAPI.onUpdateAvailable(({ version }) => {
+      setUpdateVersion(version);
+      setUpdateStatus('available');
+    });
+    window.electronAPI.onUpdateDownloaded(({ version }) => {
+      setUpdateVersion(version);
+      setUpdateStatus('downloaded');
+    });
+  }, []);
 
   const handleSubtitleAdd = useCallback(async (file: File, labelOverride: string, langOverride: string) => {
     const ext = file.name.split('.').pop()?.toLowerCase();
@@ -142,7 +159,7 @@ export default function App() {
     setFetchState('loading');
     setFetchError(null);
     try {
-      const res = await fetch('/v1/torrent/add', {
+      const res = await fetch(`${API_BASE}/v1/torrent/add`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ magnet: mag }),
@@ -190,25 +207,27 @@ export default function App() {
       setStreamLoading(true);
       try {
         const res = await fetch(
-          `/v1/torrent/remux/${draft.infoHash}/start?fileId=${encodeURIComponent(draft.fileId)}&t=0`,
+          `${API_BASE}/v1/torrent/remux/${draft.infoHash}/start?fileId=${encodeURIComponent(draft.fileId)}&t=0`,
           { method: 'POST', signal: AbortSignal.timeout(15000) }
         );
         if (!res.ok) throw new Error(`Remux start failed: ${res.status}`);
         const data: RemuxStartResponse = await res.json();
         if (!data.success) throw new Error('Remux handler failed to start');
 
-        // Strip absolute origin so the video element loads via Vite proxy (same-origin).
-        // Cross-origin video blocks <track> cue loading, which breaks all subtitle rendering.
+        // Dev: strip origin so Vite proxy handles it (cross-origin video blocks <track> cue loading).
+        // Electron: keep absolute URL — file:// has no proxy, and relative paths resolve to file:///C:/…
         const rawManifest = data.manifestUrl ?? '';
-        const manifestUrl = rawManifest.startsWith('http')
-          ? new URL(rawManifest).pathname + new URL(rawManifest).search
-          : rawManifest;
+        const manifestUrl = HLS_BASE
+          ? rawManifest
+          : rawManifest.startsWith('http')
+            ? new URL(rawManifest).pathname + new URL(rawManifest).search
+            : rawManifest;
 
         // Fetch all subtitle blobs while spinner is still showing
         const embeddedTracks: SubtitleTrackInfo[] = data.subtitleTracks ?? [];
         const b64FileId = encodeFileId(draft.fileId);
         const embeddedSubBlobPromises = embeddedTracks.map(async (track) => {
-          const url = `/subtitle/embedded/${draft.infoHash}/${b64FileId}/${track.index}`;
+          const url = `${HLS_BASE}/subtitle/embedded/${draft.infoHash}/${b64FileId}/${track.index}`;
           const blobUrl = await fetchSubtitleBlob(url);
           if (!blobUrl) return null;
           const label = track.title
@@ -223,7 +242,7 @@ export default function App() {
 
         const torrentSubBlobPromises = torrentSubtitleFiles.map(async (subFile) => {
           const b64SubFileId = encodeFileId(subFile.id);
-          const url = `/subtitle/file/${draft.infoHash}/${b64SubFileId}`;
+          const url = `${HLS_BASE}/subtitle/file/${draft.infoHash}/${b64SubFileId}`;
           const blobUrl = await fetchSubtitleBlob(url);
           if (!blobUrl) return null;
           const label = subFile.name.replace(/\.[^/.]+$/, '').split(/[\\/]/).pop() ?? subFile.name;
@@ -271,7 +290,7 @@ export default function App() {
       if (torrentSubtitleFiles.length > 0) {
         const torrentSubBlobPromises = torrentSubtitleFiles.map(async (subFile) => {
           const b64SubFileId = encodeFileId(subFile.id);
-          const url = `/subtitle/file/${draft.infoHash}/${b64SubFileId}`;
+          const url = `${HLS_BASE}/subtitle/file/${draft.infoHash}/${b64SubFileId}`;
           const blobUrl = await fetchSubtitleBlob(url);
           if (!blobUrl) return null;
           const label = subFile.name.replace(/\.[^/.]+$/, '').split(/[\\/]/).pop() ?? subFile.name;
@@ -294,7 +313,7 @@ export default function App() {
     if (!active) { setPeerStats(null); return; }
     const poll = async () => {
       try {
-        const res = await fetch(`/v1/torrent/stats/${active.infoHash}?fileId=${encodeURIComponent(active.fileId)}`);
+        const res = await fetch(`${API_BASE}/v1/torrent/stats/${active.infoHash}?fileId=${encodeURIComponent(active.fileId)}`);
         if (res.ok) {
           const data: TorrentFileStats = await res.json();
           setPeerStats({ seeders: data.seeders ?? 0, peers: data.peers ?? 0, trackers: data.trackers ?? 0 });
@@ -308,12 +327,18 @@ export default function App() {
 
   const moovBadge = MOOV_BADGE[moovStatus] ?? null;
   const streamUrlPreview = active
-    ? `/v1/torrent/stream/${active.infoHash}?fileId=${encodeURIComponent(active.fileId)}`
+    ? `${API_BASE}/v1/torrent/stream/${active.infoHash}?fileId=${encodeURIComponent(active.fileId)}`
     : '';
   const activeTrackCount = subtitleTracks.filter(t => t.active).length;
 
   return (
     <>
+      <UpdateBanner
+        status={updateStatus}
+        version={updateVersion}
+        onInstall={() => window.electronAPI?.installUpdate()}
+        onDismiss={() => setUpdateStatus(null)}
+      />
       <header className="header">
         <span className="header-logo">▶ MagnetPlay</span>
         <span className="header-title">MagnetPlay Video Player</span>

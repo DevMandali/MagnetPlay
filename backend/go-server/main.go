@@ -26,5 +26,5 @@ func main() {
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
 	log.Println("[startup] logging to stdout + logs/go-server.log")
 
-	server.StartServer(config.Default())
+	server.StartServer(config.FromEnv())
 }

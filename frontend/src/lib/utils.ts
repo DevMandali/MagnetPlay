@@ -1,3 +1,8 @@
+// In Electron (file:// protocol) Vite's dev proxy is absent — use absolute URLs.
+const IS_FILE = window.location.protocol === 'file:';
+export const API_BASE = IS_FILE ? 'http://localhost:8080' : '';
+export const HLS_BASE = IS_FILE ? 'http://localhost:8091' : '';
+
 export function srtToVtt(srt: string): string {
   let s = srt.replace(/\r\n?/g, '\n').trim();
   s = s.replace(/(\d{2}:\d{2}:\d{2}),(\d{3})/g, '$1.$2');

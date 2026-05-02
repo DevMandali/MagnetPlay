@@ -68,3 +68,17 @@ Thumbs.db
 
 # ── Graphify local config (machine-specific) ──────────────────────────────────
 .graphify_python
+
+# ── Root node_modules (Electron) ─────────────────────────────────────────────
+node_modules/
+
+# ── Electron build output ─────────────────────────────────────────────────────
+dist-electron/
+electron/dist/
+
+# ── CI-populated binaries ─────────────────────────────────────────────────────
+resources/
+
+# ── Build scripts (not source code) ──────────────────────────────────────────
+scripts/
+build-assets/

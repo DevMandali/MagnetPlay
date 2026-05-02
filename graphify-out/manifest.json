@@ -1,11 +1,11 @@
 {
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\main.go": {
-    "mtime": 1777062079.0889692,
-    "hash": "7753d6f4984f55198e93fb94f3e622c7"
+    "mtime": 1777709636.9382546,
+    "hash": "7aa7d0ec78616474bdb6566e24d219bd"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\config\\config.go": {
-    "mtime": 1777140917.9091613,
-    "hash": "0a8082a2b0231f6b13e7b58cc4f5d4af"
+    "mtime": 1777709636.9382546,
+    "hash": "9f3a3dde90a9e90d20e7891472fabbe8"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\ffmpeg\\binary.go": {
     "mtime": 1777223337.2458613,
@@ -16,8 +16,8 @@
     "hash": "e9c9e26bcd77130c2eb5383c9d1b908a"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\grpc\\server.go": {
-    "mtime": 1777629174.1310346,
-    "hash": "416747c638f702298df5d434d6bfcb50"
+    "mtime": 1777712564.4496248,
+    "hash": "11d28e85f547200eb610de08f0e206d9"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\server.go": {
     "mtime": 1777629164.5682411,
@@ -28,16 +28,16 @@
     "hash": "9120b41ab159c308a25b4dab67c23c1f"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\subtitle_handler.go": {
-    "mtime": 1777649325.981913,
-    "hash": "ca7de770e4a0964c5d7f9d7d2cc396e4"
+    "mtime": 1777712507.6057816,
+    "hash": "e6b8da8a067f0f27468e4e71e45da3da"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\subtitle_handler_test.go": {
     "mtime": 1777629148.9226,
     "hash": "4864743f767ad15e43cbb973080b01f5"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\transcoder.go": {
-    "mtime": 1777573309.5421104,
-    "hash": "988439e09004d5b352f140a81a35fed1"
+    "mtime": 1777712493.4029243,
+    "hash": "89206ae68f1f891722e78f5fec124676"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\hls\\transcoder_integration_test.go": {
     "mtime": 1777140961.8436518,
@@ -52,8 +52,16 @@
     "hash": "b1c3a24f7dcd9d26fc1c008c0ae16032"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\prowlarr\\manager.go": {
-    "mtime": 1777223337.2481875,
-    "hash": "aac185b7f66a9e67f64f2499c267cebe"
+    "mtime": 1777732159.3505194,
+    "hash": "903bc86075abb214496d6244fe73d5c4"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\prowlarr\\proc_other.go": {
+    "mtime": 1777729248.180732,
+    "hash": "c1e286343c2c571e72d092a871f27275"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\prowlarr\\proc_windows.go": {
+    "mtime": 1777729244.8876226,
+    "hash": "5d4f251ee908687c40161f2f92f12042"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\client.go": {
     "mtime": 1774004626.0397575,
@@ -64,8 +72,8 @@
     "hash": "b7f4ea57cd6a1c1dff5a865f8c65a68f"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\repository.go": {
-    "mtime": 1777573158.0357747,
-    "hash": "600fbf568be5e64d5b0b6308c333eec4"
+    "mtime": 1777697550.9283595,
+    "hash": "74c62c74e6e2a8f14e86621ebef65323"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\repository_test.go": {
     "mtime": 1776706393.0377512,
@@ -76,8 +84,8 @@
     "hash": "624c1dc94673460f70a611adabccebf4"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\service.go": {
-    "mtime": 1777652702.0668938,
-    "hash": "63ac606a20c0805c058a3bf5b5374bfc"
+    "mtime": 1777712533.5042384,
+    "hash": "250fd482714f8882ff21941cec7941c9"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\internal\\torrent\\service_mkv_test.go": {
     "mtime": 1777140967.664033,
@@ -203,13 +211,33 @@
     "mtime": 1776707260.7844832,
     "hash": "4a04c3a6b7e49ef23b036f541ad65d52"
   },
+  "E:\\study\\github_local_rep\\MagnetPlay\\electron\\main.ts": {
+    "mtime": 1777730534.061326,
+    "hash": "942ea7e41ad82ac6eecb8db75c395f4e"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\electron\\preload.ts": {
+    "mtime": 1777709060.354206,
+    "hash": "e5b97563567831def9c2885b9ab119d7"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\electron\\service-manager.ts": {
+    "mtime": 1777729239.6764235,
+    "hash": "27238085cf73c882596ad3554886cd64"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\electron\\updater.ts": {
+    "mtime": 1777709085.980889,
+    "hash": "06e5568e90f2eb7c76e349f29ea82c0c"
+  },
   "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\vite.config.ts": {
-    "mtime": 1777629277.9484084,
-    "hash": "4383413c02427f78934bd7ba9318fe80"
+    "mtime": 1777709636.9382546,
+    "hash": "70550902aa4ec2dc41274cc89fdc8a34"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\App.tsx": {
-    "mtime": 1777649325.982943,
-    "hash": "aeaf32e6966fba326ebeb4433c1fcf22"
+    "mtime": 1777733577.2048147,
+    "hash": "fc2b0ee62f8a218af8256a913a55c363"
+  },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\electron-api.d.ts": {
+    "mtime": 1777709064.258209,
+    "hash": "516dba6c4ff63d4fca7fede910e0fb67"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\main.tsx": {
     "mtime": 1777041040.0552807,
@@ -224,12 +252,12 @@
     "hash": "b550633c3921410d076e5602796954a8"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\components\\SearchPanel.tsx": {
-    "mtime": 1777223337.2567554,
-    "hash": "38176ba294b820bdb9f16aa3ad693d8a"
+    "mtime": 1777724413.088122,
+    "hash": "814932bb91643294ed7b908cf783ada6"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\components\\StatusPanel.tsx": {
-    "mtime": 1777279098.4558043,
-    "hash": "a3057ada5fb022874b61a5e2ac2ce703"
+    "mtime": 1777724432.9653082,
+    "hash": "f1de30869f3308e41292e8d58ef7b932"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\components\\SubtitlePanel.tsx": {
     "mtime": 1776616824.1533267,
@@ -239,17 +267,21 @@
     "mtime": 1777573695.180183,
     "hash": "efec790ba6a9019fe9370f78a0614a13"
   },
+  "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\components\\UpdateBanner.tsx": {
+    "mtime": 1777709542.3139708,
+    "hash": "c8d7247f65406dda78fa85204956de14"
+  },
   "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\components\\VideoPlayer.tsx": {
-    "mtime": 1777649325.9839425,
-    "hash": "e962f6e059087554d7e8f4f811da751b"
+    "mtime": 1777726818.8697662,
+    "hash": "14cb483412032210b92c9f02b1ef8a8d"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\lib\\utils.ts": {
-    "mtime": 1776616824.155327,
-    "hash": "be9f2d8e86cf491be80bcc70c8894c08"
+    "mtime": 1777726774.1796038,
+    "hash": "09f973b29014ed32aa7752a12577513c"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\lib\\videoSetup.ts": {
-    "mtime": 1777289003.3510063,
-    "hash": "825c9f9d1c2d65c8242490df5961d7d3"
+    "mtime": 1777726808.480037,
+    "hash": "32bd6047abe288084e521af58a7e9118"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\src\\types\\index.ts": {
     "mtime": 1777629290.3661337,
@@ -259,17 +291,21 @@
     "mtime": 1777223337.244356,
     "hash": "64194da28c0f2e4823f193229ba1fc73"
   },
+  "E:\\study\\github_local_rep\\MagnetPlay\\electron-builder.yml": {
+    "mtime": 1777730540.3178606,
+    "hash": "7a1f1af879b69372ca174fe2236e1ba9"
+  },
   "E:\\study\\github_local_rep\\MagnetPlay\\README.md": {
     "mtime": 1776708022.2068331,
     "hash": "58ab4dabf3a70c239f191dd12e943aec"
   },
-  "E:\\study\\github_local_rep\\MagnetPlay\\backend\\mp-spring\\src\\main\\resources\\application.yml": {
-    "mtime": 1777062092.0604675,
-    "hash": "67ed3b4998dd632e8879b506ad15a792"
+  "E:\\study\\github_local_rep\\MagnetPlay\\electron\\splash.html": {
+    "mtime": 1777727928.796637,
+    "hash": "1aeea5847e622879c106b467f4819e09"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\frontend\\index.html": {
-    "mtime": 1776616824.140327,
-    "hash": "ed8b0bc2c47b89fcc58ccc053a94ad5f"
+    "mtime": 1777714579.6518679,
+    "hash": "0d62f2c79eafec7377adea06a4ba1441"
   },
   "E:\\study\\github_local_rep\\MagnetPlay\\backend\\go-server\\init.mp4": {
     "mtime": 1777139015.5527666,

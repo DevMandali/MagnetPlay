@@ -52,7 +52,8 @@ export default function VideoPlayer({ infoHash, fileId, fileName, mimeType, isMk
     timer: null,
   });
 
-  const seekDebounceRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seekDebounceRef       = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reapplySubtitlesRef  = useRef<(() => void) | null>(null);
   const isMkvRef         = useRef(isMkv);
   const streamUrlRef     = useRef(streamUrl);
   const durationSecRef   = useRef(durationSec);
@@ -86,22 +87,27 @@ export default function VideoPlayer({ infoHash, fileId, fileName, mimeType, isMk
     const player = playerRef.current;
     if (!player) return;
 
-    subtitleTracks.forEach(t => {
-      if (!trackEls.current.has(t.id)) {
-        const vjsEl = player.addRemoteTextTrack({ kind: 'subtitles', label: t.label, srclang: t.srclang, src: t.blobUrl }, false);
-        trackEls.current.set(t.id, vjsEl);
-      }
-    });
-    trackEls.current.forEach((track, id) => {
-      if (!subtitleTracks.find(t => t.id === id)) {
-        try { player.removeRemoteTextTrack(track); } catch (_) { /* ignore */ }
-        trackEls.current.delete(id);
-      }
-    });
-    subtitleTracks.forEach(t => {
-      const el = trackEls.current.get(t.id);
-      if (el?.track) el.track.mode = t.active ? 'showing' : 'hidden';
-    });
+    const apply = () => {
+      subtitleTracks.forEach(t => {
+        if (!trackEls.current.has(t.id)) {
+          const vjsEl = player.addRemoteTextTrack({ kind: 'subtitles', label: t.label, srclang: t.srclang, src: t.blobUrl }, false);
+          trackEls.current.set(t.id, vjsEl);
+        }
+      });
+      trackEls.current.forEach((track, id) => {
+        if (!subtitleTracks.find(t => t.id === id)) {
+          try { player.removeRemoteTextTrack(track); } catch (_) { /* ignore */ }
+          trackEls.current.delete(id);
+        }
+      });
+      subtitleTracks.forEach(t => {
+        const el = trackEls.current.get(t.id);
+        if (el?.track) el.track.mode = t.active ? 'showing' : 'hidden';
+      });
+    };
+
+    reapplySubtitlesRef.current = apply;
+    apply();
   }, [subtitleTracks]);
 
   // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -388,7 +394,12 @@ export default function VideoPlayer({ infoHash, fileId, fileName, mimeType, isMk
           isSrcChangingRef.current = true;
           player.src([{ src: `${url}&t=${seekTarget.toFixed(3)}`, type: 'video/mp4' }]);
           player.play();
-          player.one('canplay', releaseSrcLock);
+          player.one('canplay', () => {
+            releaseSrcLock();
+            // player.src() auto-removes manualCleanup=false tracks; re-add them now
+            trackEls.current.clear();
+            reapplySubtitlesRef.current?.();
+          });
           setTimeout(releaseSrcLock, 1500); // safety fallback
         }, 300);
       });
@@ -420,7 +431,12 @@ export default function VideoPlayer({ infoHash, fileId, fileName, mimeType, isMk
       isSrcChangingRef.current = true;
       player.src([{ src: streamUrl + '&t=0', type: 'video/mp4' }]);
       if (durationSec > 0) player.duration(durationSec);
-      player.one('canplay', releaseSrcLock);
+      player.one('canplay', () => {
+        releaseSrcLock();
+        // player.src() auto-removes manualCleanup=false tracks; re-add them now
+        trackEls.current.clear();
+        reapplySubtitlesRef.current?.();
+      });
       setTimeout(releaseSrcLock, 1500);
     } else {
       player.src([{ src: streamUrlForNonMkv, type: mimeType }]);

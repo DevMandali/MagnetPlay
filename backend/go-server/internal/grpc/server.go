@@ -7,7 +7,9 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
+	"time"
 
 	"server/config"
 	"server/internal/ffmpeg"
@@ -57,12 +59,26 @@ func StartServer(cfg config.Config) {
 
 	repo := torrent.NewRepository(client, cfg.DataDir, cfg.MetadataTimeout)
 
-	defer repo.CleanupDataDir(cfg.DataDir)   // registered first → runs LAST (after client.Close)
+	defer repo.CleanupDataDir(cfg.DataDir) // registered first → runs LAST (after client.Close)
 
-	defer func() {                            // registered second → runs 2nd-to-last
+	defer func() { // registered second → runs 2nd-to-last
+		// 1. Drop all torrents first — releases piece storage / file handles
+		for _, t := range client.Torrents() {
+			t.Drop()
+		}
+
+		// 2. Give background goroutines time to release OS handles
+		//    (client.Close is asynchronous internally)
+		client.WaitAll() // blocks until all torrents are fully stopped
+
+		// 3. Now safe to close
 		if err := client.Close(); err != nil {
 			log.Printf("Error closing torrent client: %v", err)
 		}
+
+		// 4. Force GC to flush any finalizers holding file descriptors
+		runtime.GC()
+		time.Sleep(500 * time.Millisecond) // let OS catch up
 	}()
 
 	// fileOpener serves torrent file bytes over HTTP with Range support.

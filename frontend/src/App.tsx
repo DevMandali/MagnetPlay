@@ -197,19 +197,14 @@ export default function App() {
         const data: RemuxStartResponse = await res.json();
         if (!data.success) throw new Error('Remux handler failed to start');
 
-        setActive({
-          infoHash: draft.infoHash,
-          fileId: draft.fileId,
-          fileName: draft.fileName,
-          mimeType: 'video/mp4',
-          isMkv: true,
-          streamUrl: data.manifestUrl,
-          durationSec: data.durationSec,
-          audioTracks: data.audioTracks,
-          embeddedSubtitles: data.subtitleTracks ?? [],
-        });
+        // Strip absolute origin so the video element loads via Vite proxy (same-origin).
+        // Cross-origin video blocks <track> cue loading, which breaks all subtitle rendering.
+        const rawManifest = data.manifestUrl ?? '';
+        const manifestUrl = rawManifest.startsWith('http')
+          ? new URL(rawManifest).pathname + new URL(rawManifest).search
+          : rawManifest;
 
-        // Auto-populate embedded subtitle tracks from MKV probe
+        // Fetch all subtitle blobs while spinner is still showing
         const embeddedTracks: SubtitleTrackInfo[] = data.subtitleTracks ?? [];
         const b64FileId = encodeFileId(draft.fileId);
         const embeddedSubBlobPromises = embeddedTracks.map(async (track) => {
@@ -226,7 +221,6 @@ export default function App() {
           return { id, label, srclang: track.language || 'und', format: 'VTT' as const, blobUrl, active: false };
         });
 
-        // Auto-populate torrent subtitle files (both MKV and MP4)
         const torrentSubBlobPromises = torrentSubtitleFiles.map(async (subFile) => {
           const b64SubFileId = encodeFileId(subFile.id);
           const url = `/subtitle/file/${draft.infoHash}/${b64SubFileId}`;
@@ -240,6 +234,19 @@ export default function App() {
 
         const allResults = await Promise.all([...embeddedSubBlobPromises, ...torrentSubBlobPromises]);
         const newTracks = allResults.filter((t): t is NonNullable<typeof t> => t !== null);
+
+        // Reveal player and subtitles together — CC badge shows correct count immediately
+        setActive({
+          infoHash: draft.infoHash,
+          fileId: draft.fileId,
+          fileName: draft.fileName,
+          mimeType: 'video/mp4',
+          isMkv: true,
+          streamUrl: manifestUrl,
+          durationSec: data.durationSec,
+          audioTracks: data.audioTracks,
+          embeddedSubtitles: data.subtitleTracks ?? [],
+        });
         if (newTracks.length > 0) setSubtitleTracks(newTracks);
 
       } catch (err) {

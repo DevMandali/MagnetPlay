@@ -14,6 +14,10 @@ export default defineConfig({
         target: 'http://localhost:8091',
         changeOrigin: true,
       },
+      '/remux': {
+        target: 'http://localhost:8091',
+        changeOrigin: true,
+      },
     },
   },
 });

@@ -2,12 +2,14 @@ package torrent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	lt "github.com/anacrolix/torrent"
@@ -137,7 +139,47 @@ func (r *Repository) CleanupDataDir(dataDir string) {
 		if err := os.RemoveAll(path); err != nil {
 			log.Printf("[shutdown] failed to remove %s: %v", path, err)
 		}
+		if err := removeWithRetry(path, 5, 500*time.Millisecond); err != nil {
+			log.Printf("[shutdown] failed to remove %s: %v", path, err)
+		} else {
+			log.Printf("[shutdown] CleanupDataDir: removed %s", path)
+		}
 	}
+}
+
+func removeWithRetry(path string, attempts int, delay time.Duration) error {
+	var err error
+	for i := range attempts {
+		err = os.Remove(path)
+		if err == nil {
+			return nil
+		}
+
+		// Only retry on "file in use" / access-denied type errors
+		if !isFileLocked(err) {
+			return err // permanent error, stop retrying
+		}
+
+		log.Printf("removeWithRetry: attempt %d/%d locked: %s", i+1, attempts, path)
+		time.Sleep(delay)
+		delay *= 2 // exponential backoff
+	}
+	return err
+}
+
+// isFileLocked detects OS-level "file in use" errors cross-platform
+func isFileLocked(err error) bool {
+	var pathErr *os.PathError
+	if errors.As(err, &pathErr) {
+		// Windows: ERROR_SHARING_VIOLATION (0x20) or ERROR_LOCK_VIOLATION (0x21)
+		// Linux/macOS: EBUSY
+		msg := strings.ToLower(pathErr.Err.Error())
+		return strings.Contains(msg, "being used") ||
+			strings.Contains(msg, "sharing violation") ||
+			strings.Contains(msg, "device or resource busy") ||
+			errors.Is(pathErr.Err, syscall.EBUSY)
+	}
+	return false
 }
 
 // GetTorrentInfo returns the full TorrentInfo for an info hash, or an error if not found.
